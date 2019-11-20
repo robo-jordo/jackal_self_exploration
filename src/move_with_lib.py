@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+
+# This script makes moves using move_base
+# Move base does not fir the needs of this project so this has been replaced by move.py
+# This code has been included here incase it is needed for a future application
+
 import rospy
 import numpy as np
 from sensor_msgs.msg import PointCloud2, LaserScan
