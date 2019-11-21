@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import numpy as np
+from std_msgs.msg import String
 from sensor_msgs.msg import PointCloud2, LaserScan
 from nav_msgs.msg import OccupancyGrid
 
@@ -12,9 +13,8 @@ pub5 = rospy.Publisher('oct5', LaserScan, queue_size=10)
 pub6 = rospy.Publisher('oct6', LaserScan, queue_size=10)
 pub7 = rospy.Publisher('oct7', LaserScan, queue_size=10)
 pub8 = rospy.Publisher('oct8', LaserScan, queue_size=10)
-pub9 = rospy.Publisher('oct7', LaserScan, queue_size=10)
-pub10 = rospy.Publisher('oct8', LaserScan, queue_size=10)
-pubs = [pub1,pub2,pub3,pub4,pub5,pub6,pub7,pub8,pub9,pub10]
+pubav = rospy.Publisher('scan_avs', String, queue_size=10)
+pubs = [pub1,pub2,pub3,pub4,pub5,pub6,pub7,pub8]
 scan = LaserScan()
 
 grid_resolution = 8.0
@@ -28,11 +28,10 @@ scan_maxs = [0,0,0,0,0,0,0,0]
 segments = []
 for i in range(int(grid_resolution)):
     segments.append(-3.14+6.28*((1+i*2)/(grid_resolution*2)))
-print(segments)
+
 
 def callback(data):
     global scan
-    #print(np.max(data.ranges))
     
     current_time = rospy.Time.now()
     for i in range(int(grid_resolution)):
@@ -69,8 +68,8 @@ def callback(data):
         scan_averages[i] = np.mean(scan.ranges)
         scan_mins[i] = np.min(scan.ranges)
         scan_maxs[i] = np.max(scan.ranges)
-    print(np.round(scan_averages,2))
-    #print(scan_averages)
+    pubav.publish("&".join(map(str,scan_averages)))
+
 
 
 def listener():

@@ -4,8 +4,8 @@ import os
 import numpy as np
 import move
 import roslaunch
-from geometry_msgs.msg import Pose
 from std_msgs.msg import String
+from geometry_msgs.msg import Pose
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
 
@@ -29,9 +29,6 @@ def circular_equality(states, observation):
 
 class reinforcement_model:
 
-	def _scan_avs_callback(self, data):
-		print(data)
-
 	delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
 	spawn_model = rospy.ServiceProxy("gazebo/spawn_urdf_model", SpawnModel)
 	load_controller = rospy.ServiceProxy('controller_manager/load_controller', LoadController)
@@ -51,9 +48,6 @@ class reinforcement_model:
 	pose.orientation.w = 1
 
 	uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-	# #roslaunch.configure_logging(uuid)
-	# launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/jordan/jackal_ws/src/jackal/jackal_navigation/launch/include/gmapping.launch"])
-	# launch.start()
 
 	cli_args = ['/home/jordan/jackal_ws/src/jackal/jackal_navigation/launch/include/gmapping.launch','>/dev/null']
 	roslaunch_args = cli_args[1:]
@@ -61,13 +55,10 @@ class reinforcement_model:
 
 	parent = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
 
-	parent.start()
-
-	rospy.Subscriber("scan_avs", String, _scan_avs_callback)
-
-	state_action_pairs = np.array([[]])
+	Q_table = np.array([[]])
 	actions = np.array(["N","NW","W","SW","S","SE","E","NE"])
 	observation = np.array([0,0,0,0,0,0,0,0])
+	scans = []
 
 	episodes = 3
 	discount = 0.5
@@ -75,6 +66,9 @@ class reinforcement_model:
 
 	new_movement = move.Movement()
 	new_movement.listener()
+
+	def _avs_callback(self,data):
+		self.scans = data.split("&")
 
 
 	def _new_jackal(self):
@@ -95,6 +89,9 @@ class reinforcement_model:
 		self.load_controller("jackal_joint_publisher")
 		# Start controllers
 		self.switch_controller(["jackal_velocity_controller","jackal_joint_publisher"],[],2)
+		
+		self.parent.shutdown()
+		self.parent.start()
 		print("New Jackal ready")
 
 	def _choose_action(self, method):
@@ -104,27 +101,60 @@ class reinforcement_model:
 			return np.random.choice(self.actions)
 
 	def run(self):
+		rospy.Subscriber("scan_avs", String, self._avs_callback)
 		for i in range(self.episodes):
 
 			# start with fresh states and a new jackal
-			self.state_action_pairs = np.array([[]])
+			# self.state_action_pairs = np.array([[]])
 			self._new_jackal()
 
 			# Loop for set amount of time or untill not learning anything new
 			steps = 0
 			while(steps < 1):
 				steps = steps + 1
+
+				# Get state observation
+				observation = [self.scans]
+				exists, index = circular_equality(self.Q_table[:][0], observation)
+
+				# Choose action
+
 				action = self._choose_action("random")
 				print(action)
 
+				# Add to Q_table if isnt present
+
+				if not exists:
+					self.Q_table = np.vstack((self.Q_table, [observation,action,0,0]))
+
+				# Observe reward
+
+				# Calculate Q Value for action and add to Q-table
+
 				self.new_movement.move(action)
 
-				# Add current state to list if not seen before 
-				# Act based on policy 
-				# See reward
-				# Update policy
+				# Update policy here for TD
 
-rm = reinforcement_model()
-rm.run()
+			# Update policy here for MC
+
+# rm = reinforcement_model()
+# rm.run()
 
 
+# observation = np.array([2,1,5,1,1,3,3])
+# states = np.array([[1,3,2,2,1,5,1],[1,3,2,1,1,5,1],[1,3,3,2,1,5,1]])
+
+def numpy_test():
+
+	Qs = np.array([[[1,3,2,2,1,5,1],"NW",2,1],
+				   [[1,3,2,1,1,5,1],"N",3,2],
+				   [[1,3,3,2,1,5,1],"W",3,1]])
+	print(Qs[:,0])
+	print(circular_equality(Qs[:,0],observation))
+
+	Qs = np.vstack((Qs, [[1,3,2,2,1,5,5],"S",3,1]))
+	print(Qs)
+
+
+
+numpy_test()
