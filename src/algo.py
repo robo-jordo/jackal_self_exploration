@@ -6,13 +6,14 @@ import move
 import roslaunch
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose
+from nav_msgs.msg import OccupancyGrid
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
 
 observation = np.array([2,1,5,1,1,3,3])
 states = np.array([[1,3,2,2,1,5,1],[1,3,2,1,1,5,1],[1,3,3,2,1,5,1]])
 
-
+# function to assist in checking if two circular states are equal
 def circular_equality(states, observation):
 	exists =  False
 	index = -1
@@ -27,13 +28,31 @@ def circular_equality(states, observation):
 			break
 	return exists, index
 
-class reinforcement_model:
+class MachineLearning:
+
+	# Callbacks
+
+	def _avs_callback(self,data):
+		self.scans = data.split("&")
+
+	def _reward_callback(self, data):
+		map_data = np.array(data.data)
+		unknowns = np.count_nonzero(map_data == -1)
+		self.information_metric = len(map_data)-unknowns
+
+	# Gazebo services
 
 	delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
 	spawn_model = rospy.ServiceProxy("gazebo/spawn_urdf_model", SpawnModel)
 	load_controller = rospy.ServiceProxy('controller_manager/load_controller', LoadController)
 	unload_controller = rospy.ServiceProxy('controller_manager/unload_controller', UnloadController)
 	switch_controller = rospy.ServiceProxy('controller_manager/switch_controller', SwitchController)
+
+	# Subscribers 
+	rospy.Subscriber("/map", OccupancyGrid, _reward_callback)
+	rospy.Subscriber("scan_avs", String, _avs_callback)
+
+	# URDF and pose variables
 
 	p = os.popen("~/jackal_ws/src/jackal/jackal_description/scripts/env_run ~/jackal_ws/src/jackal/jackal_description/urdf/configs/front_laser rosrun xacro xacro.py " + "~/jackal_ws/src/jackal/jackal_description/urdf/jackal.urdf.xacro")
 	xml_string = p.read()
@@ -47,6 +66,8 @@ class reinforcement_model:
 	pose.orientation.z = 0
 	pose.orientation.w = 1
 
+	# Roslaunch api usage for gmapping reset
+
 	uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 
 	cli_args = ['/home/jordan/jackal_ws/src/jackal/jackal_navigation/launch/include/gmapping.launch','>/dev/null']
@@ -55,7 +76,8 @@ class reinforcement_model:
 
 	parent = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
 
-	Q_table = np.array([[]])
+	# Global variables and data structures
+
 	actions = np.array(["N","NW","W","SW","S","SE","E","NE"])
 	observation = np.array([0,0,0,0,0,0,0,0])
 	scans = []
@@ -64,14 +86,21 @@ class reinforcement_model:
 	discount = 0.5
 	alpha = 0.1
 
+	information_metric = 0
+	old_info_metric = 0
+
+	# Import movement object to move model
+
 	new_movement = move.Movement()
 	new_movement.listener()
 
-	def _avs_callback(self,data):
-		self.scans = data.split("&")
 
+	# Usable methods from this class to assist machine learning algorithms
 
-	def _new_jackal(self):
+	# Function to spawn new model and reset gmapping
+	# need to add option for new world here
+
+	def new_model(self):
 		try:
 			self.delete_model("jackal")
 		except:
@@ -94,55 +123,69 @@ class reinforcement_model:
 		self.parent.start()
 		print("New Jackal ready")
 
-	def _choose_action(self, method):
-		if method == "epsilon":
-			pass
-		elif method == "random":
-			return np.random.choice(self.actions)
+	def get_observation(self):
+		return self.scans
 
-	def run(self):
-		rospy.Subscriber("scan_avs", String, self._avs_callback)
-		for i in range(self.episodes):
+	def move_model(self, action):
+		self.new_movement.move(action)
 
-			# start with fresh states and a new jackal
-			# self.state_action_pairs = np.array([[]])
-			self._new_jackal()
+	def delta_score(self):
+		value = self.information_metric - self.old_info_metric
+		self.old_info_metric = self.information_metric
+		return value
 
-			# Loop for set amount of time or untill not learning anything new
-			steps = 0
-			while(steps < 1):
-				steps = steps + 1
 
-				# Get state observation
-				observation = [self.scans]
-				exists, index = circular_equality(self.Q_table[:][0], observation)
+# function to assist in choosing a new action 
+def _choose_action(method):
+	if method == "epsilon":
+		pass
+	elif method == "random":
+		return np.random.choice(self.actions)
 
-				# Choose action
+Q_table = np.array([])
+ml = MachineLearning()
 
-				action = self._choose_action("random")
-				print(action)
+# actual machine learning algorithm
+def run(self):
+	
+	for i in range(self.episodes):
 
-				# Add to Q_table if isnt present
+		# start with fresh states and a new jackal
+		# self.state_action_pairs = np.array([[]])
+		ml.new_model()
 
-				if not exists:
-					self.Q_table = np.vstack((self.Q_table, [observation,action,0,0]))
+		# Loop for set amount of time or untill not learning anything new
+		steps = 0
+		while(steps < 1):
+			steps = steps + 1
 
-				# Observe reward
+			# Get state observation
+			observation = [ml.get_observation]
+			exists, index = circular_equality(Q_table[:][0], observation)
 
-				# Calculate Q Value for action and add to Q-table
+			# Choose action
 
-				self.new_movement.move(action)
+			action = _choose_action("random")
+			print(action)
 
-				# Update policy here for TD
+			# Add to Q_table if isnt present
 
-			# Update policy here for MC
+			if not exists:
+				Q_table = np.vstack((Q_table, [observation,action,0,0]))
+
+			# Observe reward
+
+			# Calculate Q Value for action and add to Q-table
+
+			ml.move_model(action)
+
+			# Update policy here for TD
+
+		# Update policy here for MC
 
 # rm = reinforcement_model()
 # rm.run()
 
-
-# observation = np.array([2,1,5,1,1,3,3])
-# states = np.array([[1,3,2,2,1,5,1],[1,3,2,1,1,5,1],[1,3,3,2,1,5,1]])
 
 def numpy_test():
 
