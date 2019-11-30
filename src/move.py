@@ -3,6 +3,7 @@ import sys
 import rospy
 import numpy as np
 import math
+from std_msgs.msg import String
 from sensor_msgs.msg import PointCloud2, LaserScan
 from nav_msgs.msg import OccupancyGrid, Odometry
 from geometry_msgs.msg import PoseStamped, Twist
@@ -11,6 +12,7 @@ from tf.transformations import euler_from_quaternion
 
 class Movement:
 	pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+	heading_pub = rospy.Publisher('heading', String, queue_size=1)
 
 	scan_min = 0
 
@@ -20,6 +22,7 @@ class Movement:
 	stored_x = 0
 	stored_y = 0
 	stored_theta = 0
+	heading = ""
 
 	new_twist = Twist()
 
@@ -60,8 +63,9 @@ class Movement:
 
 		self.new_twist.angular.z = 0
 		self.new_twist.linear.x = 0
-
+		self.heading = direction
 		self.target = self.directions[direction]
+
 
 		if direction == "ccw":
 			if ((self.stored_theta - 0.785)>=-3.14):
@@ -83,14 +87,14 @@ class Movement:
 
 		if (direction == "cw" or direction == "ccw"):
 			while(abs(self.yaw - self.target) > (0.005)):
-				print(str(self.target) + " : " + str(self.yaw))
+				#print(str(self.target) + " : " + str(self.yaw))
 				self.new_twist.angular.z = 3 * (self.target-self.yaw)
 				self.pub.publish(self.new_twist)
 				rospy.sleep(0.05)
 
 		if (direction == "f" or direction == "b"):
 			while((math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2)) < (1)):
-				print(str(self.target) + " : " + str(self.x_pos))
+				#print(str(self.target) + " : " + str(self.x_pos))
 				self.new_twist.linear.x = self.direc * 1 * (1.2 - math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2))
 				self.pub.publish(self.new_twist)
 				rospy.sleep(0.05)
@@ -107,14 +111,15 @@ class Movement:
 		self.new_twist.linear.x = 0
 
 		self.target = self.directions[direction]
+		self.heading_pub.publish(direction)
 
 		# Turn to correct orientation
 		while(abs(self.yaw - self.target) > (0.005)):
-			print(str(self.target) + " , " + str(self.yaw))
-			sys.stdout.write("\033[F")
+			#print(str(self.target) + " , " + str(self.yaw))
+			#sys.stdout.write("\033[F")
 			self.new_twist.angular.z = 3 * (self.target-self.yaw)
 			self.pub.publish(self.new_twist)
-			rospy.sleep(0.05)
+			#rospy.sleep(0.05)
 		self.new_twist.angular.z = 0
 		self.new_twist.linear.x = 0
 		self.pub.publish(self.new_twist)
@@ -128,11 +133,11 @@ class Movement:
 		else:
 			# Move forward if there isnt an obstacle 
 			while((math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2)) < (0.5)):
-				print(str(self.target) + " : " + str(self.x_pos))
-				sys.stdout.write("\r")
+				#print(str(self.target) + " : " + str(self.x_pos))
+				#sys.stdout.write("\r")
 				self.new_twist.linear.x = self.direc * 1 * (1.2 - math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2))
 				self.pub.publish(self.new_twist)
-				rospy.sleep(0.05)
+				#rospy.sleep(0.05)
 			self.new_twist.angular.z = 0
 			self.new_twist.linear.x = 0
 			self.pub.publish(self.new_twist)
@@ -146,7 +151,9 @@ class Movement:
 		# anonymous=True flag means that rospy will choose a unique
 		# name for our 'listener' node so that multiple listeners can
 		# run simultaneously.
-		rospy.init_node('Mover', anonymous=True)
+		print(__name__)
+		if __name__ == '__main__':
+			rospy.init_node('Mover', anonymous=True)
 
 		rospy.Subscriber("/odometry/filtered", Odometry, self._odom_callback)
 		rospy.Subscriber("/oct4", LaserScan, self._front_laser_callback)
