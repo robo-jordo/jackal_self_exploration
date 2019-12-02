@@ -83,7 +83,9 @@ def replay(batch_size):
 # Loop through episodes
 for e in range(10000):
 	state = env.reset()
-	assert(state != [0]*state_size)
+	if (state == [0]*state_size):
+		print("points not being published")
+	#assert(state != [0]*state_size)
 	state = np.reshape(state, [1, 8])
 
 	for t in range(2000):
