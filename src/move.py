@@ -114,17 +114,20 @@ class Movement:
 		self.heading_pub.publish(direction)
 
 		# Turn to correct orientation
+
 		while(abs(self.yaw - self.target) > (0.005)):
-			#print(str(self.target) + " , " + str(self.yaw))
-			#sys.stdout.write("\033[F")
+			print(str(self.target) + " , " + str(self.yaw))
+			sys.stdout.write("\033[F")
 			self.new_twist.angular.z = 3 * (self.target-self.yaw)
 			self.pub.publish(self.new_twist)
 			#rospy.sleep(0.05)
+		print("")
 		self.new_twist.angular.z = 0
 		self.new_twist.linear.x = 0
 		self.pub.publish(self.new_twist)
 
 		# Check for object
+
 		if (self._lidar_object_check()):
 			# Dont move if there is an obstacle
 			print("")
@@ -133,11 +136,12 @@ class Movement:
 		else:
 			# Move forward if there isnt an obstacle 
 			while((math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2)) < (0.5)):
-				#print(str(self.target) + " : " + str(self.x_pos))
-				#sys.stdout.write("\r")
+				print((math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2)))
+				sys.stdout.write("\033[F")
 				self.new_twist.linear.x = self.direc * 1 * (1.2 - math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2))
 				self.pub.publish(self.new_twist)
 				#rospy.sleep(0.05)
+			print("")
 			self.new_twist.angular.z = 0
 			self.new_twist.linear.x = 0
 			self.pub.publish(self.new_twist)
