@@ -15,6 +15,7 @@ pub6 = rospy.Publisher('oct6', LaserScan, queue_size=10)
 pub7 = rospy.Publisher('oct7', LaserScan, queue_size=10)
 pub8 = rospy.Publisher('oct8', LaserScan, queue_size=10)
 pubav = rospy.Publisher('scan_avs', String, queue_size=10)
+pubfront = rospy.Publisher('heading_scan', String, queue_size=10)
 pubs = [pub1,pub2,pub3,pub4,pub5,pub6,pub7,pub8]
 scan = LaserScan()
 
@@ -39,9 +40,12 @@ def _heading_callback(data):
 
 def callback(data):
     global scan
+    if (heading == ""):
+        return -1
     segments_temp = rotate(segments,shift[heading])
     current_time = rospy.Time.now()
     for i in range(int(grid_resolution)):
+
         scan_step_size = len(data.ranges)/grid_resolution
 
         scan.header.stamp = current_time
@@ -60,7 +64,7 @@ def callback(data):
 
         scan.ranges = []
         scan.intensities = []
-        print( scan_step_size*shift[heading])
+        
         temp_data = rotate(data.ranges, int(scan_step_size*shift[heading]))
 
         if i<grid_resolution-1:
@@ -82,6 +86,7 @@ def callback(data):
         scan_averages[i] = np.mean(scan.ranges)
         scan_mins[i] = np.min(scan.ranges)
         scan_maxs[i] = np.max(scan.ranges)
+
     pubav.publish("&".join(map(str,scan_averages)))
 
 
