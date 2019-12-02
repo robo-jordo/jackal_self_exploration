@@ -61,7 +61,7 @@ class MachineLearning:
 
 	uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 
-	cli_args = ['/home/jordan/jackal_ws/src/jackal/jackal_navigation/launch/include/gmapping.launch','>/dev/null']
+	cli_args = ['/home/jordan/jackal_ws/src/jackal_exploration/launch/gmapping_no_output.launch']
 	roslaunch_args = cli_args[1:]
 	roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
 
@@ -97,11 +97,7 @@ class MachineLearning:
 
 	# Callbacks
 
-	# def _odom_callback(self, data):
-	# 	orientation_q = data.pose.pose.orientation
-	# 	orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-	# 	(self.roll, self.pitch, self.yaw) = euler_from_quaternion (orientation_list)
-
+	
 	def _avs_callback(self,data):
 		self.scans = str(data.data).split("&")
 		
@@ -167,6 +163,7 @@ class MachineLearning:
 
 	def step(self, action):
 		self.move_model(action)
+
 
 		reward = self.delta_score()
 
