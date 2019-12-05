@@ -5,14 +5,15 @@ import numpy as np
 from numpy import inf
 import move
 import roslaunch
+from gazebo_msgs.msg import ModelState 
+from gazebo_msgs.srv import SetModelState
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import OccupancyGrid
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
 
-observation = np.array([2,1,5,1,1,3,3])
-states = np.array([[1,3,2,2,1,5,1],[1,3,2,1,1,5,1],[1,3,3,2,1,5,1]])
+
 
 # function to assist in checking if two circular states are equal
 def circular_equality(states, observation):
@@ -36,7 +37,7 @@ class MachineLearning:
 		
 
 	# Gazebo services
-
+	set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
 	delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
 	spawn_model = rospy.ServiceProxy("gazebo/spawn_urdf_model", SpawnModel)
 	load_controller = rospy.ServiceProxy('controller_manager/load_controller', LoadController)
@@ -56,6 +57,17 @@ class MachineLearning:
 	pose.orientation.y = 0
 	pose.orientation.z = 0
 	pose.orientation.w = 1
+
+
+	state_msg = ModelState()
+	state_msg.model_name = 'jackal'
+	state_msg.pose.position.x = 0
+	state_msg.pose.position.y = 0
+	state_msg.pose.position.z = 0.3
+	state_msg.pose.orientation.x = 0
+	state_msg.pose.orientation.y = 0
+	state_msg.pose.orientation.z = 0
+	state_msg.pose.orientation.w = 1
 
 	# Roslaunch api usage for gmapping reset
 
@@ -87,61 +99,107 @@ class MachineLearning:
 	new_movement.listener()
 
 
-	# Usable methods from this class to assist machine learning algorithms
-
-	# Function to spawn new model and reset gmapping
-	# need to add option for new world here
-
-	def rotate(l, n):
-		return l[n:] + l[:n]
-
 	# Callbacks
-
-	
 	def _avs_callback(self,data):
+		""" Function to spawn new model and controllers in gazebo and start the controllers.
+
+		Args:
+			param1: The first parameter.
+			param2: The second parameter.
+
+		Returns:
+			The return value. True for success, False otherwise.
+
+		"""
 		self.scans = str(data.data).split("&")
 		
 	def _reward_callback(self, data):
+		""" Function to spawn new model and controllers in gazebo and start the controllers.
+
+		Args:
+			param1: The first parameter.
+			param2: The second parameter.
+
+		Returns:
+			The return value. True for success, False otherwise.
+
+		"""
 		map_data = np.array(data.data)
 		unknowns = np.count_nonzero(map_data == -1)
 		self.information_metric = len(map_data)-unknowns
 
+
+	# function to set up callbacks
 	def listener(self):
 		rospy.Subscriber("/map", OccupancyGrid, self._reward_callback)
 		rospy.Subscriber("scan_avs", String, self._avs_callback)
-		# rospy.Subscriber("/odometry/filtered", Odometry, self._odom_callback)
 
+
+	# Usable methods from this class to assist machine learning algorithms
 
 	def new_model(self):
+		""" Function to spawn new model and controllers in gazebo and start the controllers.
+
+		Args:
+			param1: The first parameter.
+			param2: The second parameter.
+
+		Returns:
+			The return value. True for success, False otherwise.
+
+		"""
+		# try:
+		# 	self.delete_model("jackal")
+		# except:
+		# 	print("None")
 		try:
-			self.delete_model("jackal")
+			rospy.wait_for_service("gazebo/set_model_state", timeout=20)
+			resp = self.set_state( self.state_msg )
+			# response = self.spawn_model("jackal",self.xml_string,"",self.pose,"world")
+			# print(response.success)
+		except (rospy.ServiceException), e:
+			print(e)
 		except:
-			print("None")
-		self.spawn_model("jackal",self.xml_string,"",self.pose,"world")
-		# Wait for services to be available
-		rospy.wait_for_service('controller_manager/load_controller')
-		rospy.wait_for_service('controller_manager/switch_controller')
-		rospy.wait_for_service('controller_manager/unload_controller')
-		# Unload controllers
-		self.unload_controller("jackal_joint_publisher")
-		self.unload_controller("jackal_velocity_controller")
-		# Load controllers
-		self.load_controller("jackal_velocity_controller")
-		self.load_controller("jackal_joint_publisher")
-		# Start controllers
-		self.switch_controller(["jackal_velocity_controller","jackal_joint_publisher"],[],2)
+			print("POESED")
 		
-		self.parent.shutdown()
-		self.parent.start()
+
+		# Wait for services to be available
+		# rospy.wait_for_service('controller_manager/load_controller')
+		# rospy.wait_for_service('controller_manager/switch_controller')
+		# rospy.wait_for_service('controller_manager/unload_controller')
+		# # Unload controllers
+		# self.unload_controller("jackal_joint_publisher")
+		# self.unload_controller("jackal_velocity_controller")
+		# # Load controllers
+		# self.load_controller("jackal_velocity_controller")
+		# self.load_controller("jackal_joint_publisher")
+		# # Start controllers
+		# self.switch_controller(["jackal_velocity_controller","jackal_joint_publisher"],[],2)
+		try:
+			response = self.parent.shutdown()
+			print(response)
+		except:
+			print("Na")
+		rospy.sleep(2)
+
+		response = self.parent.start()
+		print(response)
 		self.information_metric = 0
 		self.old_info_metric = 0
 		print("New Jackal ready")
 
 	def get_observation(self):
+		""" Function to spawn new model and controllers in gazebo and start the controllers.
 
+		Args:
+			param1: The first parameter.
+			param2: The second parameter.
+
+		Returns:
+			The return value. True for success, False otherwise.
+
+		"""
 		temp = self.scans
-		# heading = self.new_movement.heading
-		# temp = self.rotate(temp,)
 		for scan in range(len(temp)):
 			if temp[scan] == inf:
 				temp[scan] = 0
@@ -150,25 +208,63 @@ class MachineLearning:
 		return temp
 
 	def move_model(self, action):
+		""" Function to move the gazebo model using Movement object.
+
+		Args:
+			action (str): The direction in which to move
+
+		Returns:
+			None
+
+		"""
 		self.new_movement.move(action)
 
 	def delta_score(self):
+		""" Function to return a reward
+
+		Args:
+			None
+
+		Returns:
+			value (int): The new information gathered in the map
+
+		"""
 		value = self.information_metric - self.old_info_metric
 		self.old_info_metric = self.information_metric
 		return value
 
 	def reset(self):
+		""" Function reset simulation
+
+		Returns:
+			Observation (list): A list of float values of the average value
+								of each lidar segment
+
+		"""
 		self.new_model()
 		return self.get_observation()
 
 	def step(self, action):
+		""" Function to move model and return useful info like the OpenAi gym
+
+		Args:
+			action (str): The direction in which to move
+
+		Returns:
+			Observation (list): A list of float values of the average value
+								of each lidar segment
+			value (int): The new information gathered in the map
+			done (bool): Whether the simulation in a termination state
+			info (int): ???? Nothing yet just mirrors OpenAi gym setup
+
+		"""
 		self.move_model(action)
-
-
 		reward = self.delta_score()
-
 		return self.get_observation(), reward, 0, 0
 
+# Test case stuff
+observation = np.array([2,1,5,1,1,3,3])
+states = np.array([[1,3,2,2,1,5,1],[1,3,2,1,1,5,1],[1,3,3,2,1,5,1]])
 
 def numpy_test():
 
