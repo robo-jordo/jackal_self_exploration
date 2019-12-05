@@ -5,6 +5,7 @@ import numpy as np
 import ml_lib as ml
 import collections
 import random
+import sys
 
 import roslaunch
 from std_msgs.msg import String
@@ -27,7 +28,7 @@ epsilon_decay = 0.9995
 gamma = 0.95
 
 rospy.init_node('RL', anonymous=True)
-memory = collections.deque(maxlen=5000)
+memory = collections.deque(maxlen=1000)
 
 # Create openai environment
 env = ml.MachineLearning()
@@ -89,6 +90,8 @@ for e in range(10000):
 	state = np.reshape(state, [1, 8])
 
 	for t in range(2000):
+		print(str(t+1)+"/30")
+		sys.stdout.write("\033[F")
 		state = env.get_observation()
 		state = np.reshape(state, [1, 8])
 
@@ -102,66 +105,14 @@ for e in range(10000):
 
 	 	state = observation
 
-		if done or t == 30:
+		if done or t == 10:
 			
 			print("episode: {}, score: {}, eps: {}, memory: {}".format(e, env.information_metric, epsilon, len(memory)))
 			observation = env.reset()
 			break
 
 		if len(memory) > 16:
-			print("########################3")
-			replay(16)
+		 	replay(16)
 
 		
-env.close()
-
-
-# # function to assist in choosing a new action 
-# def _choose_action(method):
-# 	if method == "epsilon":
-# 		pass
-# 	elif method == "random":
-# 		return np.random.choice(self.actions)
-
-# ml = MachineLearning()
-
-# # actual machine learning algorithm
-# def run(self):
-	
-# 	for i in range(self.episodes):
-
-# 		# start with fresh states and a new jackal
-# 		# self.state_action_pairs = np.array([[]])
-# 		ml.new_model()
-
-# 		# Loop for set amount of time or untill not learning anything new
-# 		steps = 0
-# 		while(steps < 1):
-# 			steps = steps + 1
-
-# 			# Get state observation
-# 			observation = [ml.get_observation]
-# 			exists, index = circular_equality(Q_table[:][0], observation)
-
-# 			# Choose action
-
-# 			action = _choose_action("random")
-# 			print(action)
-
-# 			# Add to Q_table if isnt present
-
-# 			if not exists:
-# 				Q_table = np.vstack((Q_table, [observation,action,0,0]))
-
-# 			# Observe reward
-
-# 			# Calculate Q Value for action and add to Q-table
-
-# 			ml.move_model(action)
-
-# 			# Update policy here for TD
-
-# 		# Update policy here for MC
-
-# # rm = reinforcement_model()
-# # rm.run()
+#env.close()

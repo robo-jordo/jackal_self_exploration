@@ -116,12 +116,12 @@ class Movement:
 		# Turn to correct orientation
 
 		while(abs(self.yaw - self.target) > (0.005)):
-			print(str(self.target) + " , " + str(self.yaw))
-			sys.stdout.write("\033[F")
-			self.new_twist.angular.z = 3 * (self.target-self.yaw)
+			#print(str(self.target) + " , " + str(self.yaw))
+			#sys.stdout.write("\033[F")
+			self.new_twist.angular.z = 2 * (self.target-self.yaw)
 			self.pub.publish(self.new_twist)
 			#rospy.sleep(0.05)
-		print("")
+		#print("")
 		self.new_twist.angular.z = 0
 		self.new_twist.linear.x = 0
 		self.pub.publish(self.new_twist)
@@ -130,18 +130,17 @@ class Movement:
 
 		if (self._lidar_object_check()):
 			# Dont move if there is an obstacle
-			print("")
-			print("object")
+			#print("object")
 			return -1 
 		else:
 			# Move forward if there isnt an obstacle 
 			while((math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2)) < (0.5)):
-				print((math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2)))
-				sys.stdout.write("\033[F")
+				#print((math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2)))
+				#sys.stdout.write("\033[F")
 				self.new_twist.linear.x = self.direc * 1 * (1.2 - math.sqrt((self.stored_x-self.x_pos)**2 + (self.stored_y-self.y_pos)**2))
 				self.pub.publish(self.new_twist)
 				#rospy.sleep(0.05)
-			print("")
+			#print("")
 			self.new_twist.angular.z = 0
 			self.new_twist.linear.x = 0
 			self.pub.publish(self.new_twist)
@@ -160,7 +159,7 @@ class Movement:
 			rospy.init_node('Mover', anonymous=True)
 
 		rospy.Subscriber("/odometry/filtered", Odometry, self._odom_callback)
-		rospy.Subscriber("/oct4", LaserScan, self._front_laser_callback)
+		rospy.Subscriber("/heading_scan", LaserScan, self._front_laser_callback)
 		
 
 		# spin() simply keeps python from exiting until this node is stopped

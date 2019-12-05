@@ -6,6 +6,7 @@ from sensor_msgs.msg import PointCloud2, LaserScan
 from nav_msgs.msg import OccupancyGrid, Odometry
 from tf.transformations import euler_from_quaternion
 
+# octal segment publishers
 pub1 = rospy.Publisher('oct1', LaserScan, queue_size=10)
 pub2 = rospy.Publisher('oct2', LaserScan, queue_size=10)
 pub3 = rospy.Publisher('oct3', LaserScan, queue_size=10)
@@ -14,25 +15,41 @@ pub5 = rospy.Publisher('oct5', LaserScan, queue_size=10)
 pub6 = rospy.Publisher('oct6', LaserScan, queue_size=10)
 pub7 = rospy.Publisher('oct7', LaserScan, queue_size=10)
 pub8 = rospy.Publisher('oct8', LaserScan, queue_size=10)
-pubav = rospy.Publisher('scan_avs', String, queue_size=10)
-pubfront = rospy.Publisher('heading_scan', String, queue_size=10)
+# publisher list to be iterated through
 pubs = [pub1,pub2,pub3,pub4,pub5,pub6,pub7,pub8]
+
+# stat publishers
+pubav = rospy.Publisher('scan_avs', String, queue_size=10)
+pubfront = rospy.Publisher('heading_scan', LaserScan, queue_size=10)
+
+# Laserscan object to be filled and published in segments
 scan = LaserScan()
 
+# grid resolution <float> (ability to change is not implemented yet) 
 grid_resolution = 8.0
+
+# Placeholder data structures
 scan_averages = [0,0,0,0,0,0,0,0]
 scan_mins = [0,0,0,0,0,0,0,0]
 scan_maxs = [0,0,0,0,0,0,0,0]
 heading = ""
+
+# Dict used to shift segments so that they are in the glabal world frame
 shift = {"N":3,"NW":2,"W":1,"SW":0,"S":7,"SE":6,"E":5,"NE":4}
+# Dict used to determine which segment is the front of the robot
+forward_shift = {"N":0,"NW":1,"W":2,"SW":3,"S":4,"SE":5,"E":6,"NE":7}
 
 #segments = [-3.14+6.28*(1.0/),-3.14+6.28*(3/16.0),-3.14+6.28*(5/16.0),-3.14+6.28*(7/16.0),-3.14+6.28*(9/16.0),-3.14+6.28*(11/16.0),-3.14+6.28*(13/16.0),-3.14+6.28*(15/16.0)]
+
+# Segment min and max angle value calculation
 segments = []
 for i in range(int(grid_resolution)):
     segments.append(-3.14+6.28*((1+i*2)/(grid_resolution*2)))
 
+# function to help shift lists
 def rotate(l, n):
         return l[n:] + l[:n]
+
 
 def _heading_callback(data):
     global heading 
@@ -86,7 +103,8 @@ def callback(data):
         scan_averages[i] = np.mean(scan.ranges)
         scan_mins[i] = np.min(scan.ranges)
         scan_maxs[i] = np.max(scan.ranges)
-
+        if (i == forward_shift[heading]):
+            pubfront.publish(scan)
     pubav.publish("&".join(map(str,scan_averages)))
 
 
