@@ -5,6 +5,7 @@ import numpy as np
 from numpy import inf
 import move
 import roslaunch
+import sys
 from gazebo_msgs.msg import ModelState 
 from gazebo_msgs.srv import SetModelState
 from std_msgs.msg import String
@@ -12,7 +13,7 @@ from geometry_msgs.msg import Pose
 from nav_msgs.msg import OccupancyGrid
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
-
+from memory_profiler import profile
 
 
 # function to assist in checking if two circular states are equal
@@ -71,13 +72,16 @@ class MachineLearning:
 
 	# Roslaunch api usage for gmapping reset
 
-	uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+	pub = rospy.Publisher('/syscommand', String, queue_size=1)
+	# uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+	# roslaunch.configure_logging(uuid)
+	# launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/jordan/jackal_ws/src/jackal_exploration/launch/gmapping_no_output.launch'])
+	#launch.start()
+	# cli_args = ['/home/jordan/jackal_ws/src/jackal_exploration/launch/gmapping_no_output.launch']
+	# roslaunch_args = cli_args[1:]
+	# roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
 
-	cli_args = ['/home/jordan/jackal_ws/src/jackal_exploration/launch/gmapping_no_output.launch']
-	roslaunch_args = cli_args[1:]
-	roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-
-	parent = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
+	# parent = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
 
 	# Global variables and data structures
 
@@ -136,7 +140,7 @@ class MachineLearning:
 
 
 	# Usable methods from this class to assist machine learning algorithms
-
+	#@profile
 	def new_model(self):
 		""" Function to spawn new model and controllers in gazebo and start the controllers.
 
@@ -160,7 +164,7 @@ class MachineLearning:
 		except (rospy.ServiceException), e:
 			print(e)
 		except:
-			print("POESED")
+			print("Issue")
 		
 
 		# Wait for services to be available
@@ -175,15 +179,15 @@ class MachineLearning:
 		# self.load_controller("jackal_joint_publisher")
 		# # Start controllers
 		# self.switch_controller(["jackal_velocity_controller","jackal_joint_publisher"],[],2)
-		try:
-			response = self.parent.shutdown()
-			print(response)
-		except:
-			print("Na")
-		rospy.sleep(2)
+		# try:
+		# 	self.launch.shutdown()
+		# except:
+		# 	print("Na")
+		# rospy.sleep(4)
 
-		response = self.parent.start()
-		print(response)
+		# self.launch.start()
+		# print(sys.getsizeof(self.launch))
+		self.pub.publish("reset")
 		self.information_metric = 0
 		self.old_info_metric = 0
 		print("New Jackal ready")
