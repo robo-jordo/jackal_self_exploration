@@ -6,6 +6,8 @@ import ml_lib as ml
 import collections
 import random
 import sys
+from memory_profiler import profile
+import gc
 
 import roslaunch
 from std_msgs.msg import String
@@ -18,6 +20,9 @@ from keras import optimizers
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 
+# from pympler import muppy, summary
+
+
 # global variables
 learning_rate = 0.001
 action_size = 8
@@ -28,7 +33,7 @@ epsilon_decay = 0.9995
 gamma = 0.95
 
 rospy.init_node('RL', anonymous=True)
-memory = collections.deque(maxlen=1000)
+memory = collections.deque(maxlen=40)
 
 # Create openai environment
 env = ml.MachineLearning()
@@ -51,6 +56,15 @@ model.add(Dense(action_size, activation='linear'))
 model.compile(loss='mse',optimizer=optimizers.Adam(lr=learning_rate))
 
 indo = {"N":0,"NW":1,"W":2,"SW":3,"S":4,"SE":5,"E":6,"NE":7}
+
+def sizeof_fmt(num, suffix='B'):
+	''' by Fred Cirera,  https://stackoverflow.com/a/1094933/1870254, modified'''
+	for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+		if abs(num) < 1024.0:
+			return "%3.1f %s%s" % (num, unit, suffix)
+		num /= 1024.0
+	return "%.1f %s%s" % (num, 'Yi', suffix)
+
 
 def act(state):
 	if np.random.rand() <= epsilon:
@@ -82,37 +96,51 @@ def replay(batch_size):
 #env._max_episode_steps = 2000
 
 # Loop through episodes
-for e in range(10000):
-	state = env.reset()
-	if (state == [0]*state_size):
-		print("points not being published")
-	#assert(state != [0]*state_size)
-	state = np.reshape(state, [1, 8])
 
-	for t in range(2000):
-		print(str(t+1)+"/30")
-		sys.stdout.write("\033[F")
-		state = env.get_observation()
+#@profile
+def main():
+	for e in range(500):
+
+		state = env.reset()
+		if (state == [0]*state_size):
+			print("points not being published")
+		#assert(state != [0]*state_size)
 		state = np.reshape(state, [1, 8])
+		print("model: " + str(sys.getsizeof(memory)/1000))
+		for t in range(2000):
+			result = gc.collect()
+			print("garbage: "+str(result))
+			print(str(t+1)+"/30")
+			sys.stdout.write("\033[F")
+			state = env.get_observation()
+			state = np.reshape(state, [1, 8])
 
-	 	action = act(state)
+			action = act(state)
 
-	 	observation, reward, done, info = env.step(action)
+			observation, reward, done, info = env.step(action)
 
-	 	observation = np.reshape(observation, [1, 8])
+			observation = np.reshape(observation, [1, 8])
 
-	 	remember(state, action, reward, observation, done)
+			remember(state, action, reward, observation, done)
 
-	 	state = observation
+			state = observation
 
-		if done or t == 10:
-			
-			print("episode: {}, score: {}, eps: {}, memory: {}".format(e, env.information_metric, epsilon, len(memory)))
-			observation = env.reset()
-			break
+			if done or t == 5:
+				# print(sys.getsizeof(memory)/1000)
+				print("episode: {}, score: {}, eps: {}, memory: {}".format(e, env.information_metric, epsilon, len(memory)))
+				print(sys.getsizeof(memory)/1000)
+				# observation = env.reset()
+				break
 
-		if len(memory) > 16:
-		 	replay(16)
+			if len(memory) > 16:
+				replay(16)
+		# all_objects = muppy.get_objects()
+		# sum1 = summary.summarize(all_objects)
+		# # Prints out a summary of the large objects
+		# summary.print_(sum1)
+		# Get references to certain types of objects such as dataframe
 
+
+main()
 		
 #env.close()
