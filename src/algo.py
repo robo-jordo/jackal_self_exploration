@@ -20,7 +20,7 @@ from keras import optimizers
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 
-# from pympler import muppy, summary
+import resource
 
 
 # global variables
@@ -29,7 +29,7 @@ action_size = 8
 state_size = 8
 epsilon = 1
 epsilon_min = 0.01
-epsilon_decay = 0.9995
+epsilon_decay = 0.995
 gamma = 0.95
 
 rospy.init_node('RL', anonymous=True)
@@ -47,8 +47,10 @@ observation = env.reset()
 model = Sequential()
 # 'Dense' is the basic form of a neural network layer
 # Input Layer of state size(4) and Hidden Layer with 24 nodes
-model.add(Dense(24, input_dim=state_size, activation='relu'))
+model.add(Dense(48, input_dim=state_size, activation='relu'))
 # Hidden layer with 24 nodes
+model.add(Dense(48, activation='relu'))
+
 model.add(Dense(24, activation='relu'))
 # Output Layer with # of actions: 2 nodes (left, right)
 model.add(Dense(action_size, activation='linear'))
@@ -93,53 +95,43 @@ def replay(batch_size):
 		if epsilon > epsilon_min:
 			epsilon *= epsilon_decay
 
-#env._max_episode_steps = 2000
-
 # Loop through episodes
 
-#@profile
 def main():
-	for e in range(500):
-
+	for e in range(3000):
 		state = env.reset()
 		if (state == [0]*state_size):
 			print("points not being published")
 		#assert(state != [0]*state_size)
 		state = np.reshape(state, [1, 8])
-		print("model: " + str(sys.getsizeof(memory)/1000))
+		running_rew = 0
 		for t in range(2000):
 			result = gc.collect()
-			print("garbage: "+str(result))
 			print(str(t+1)+"/30")
 			sys.stdout.write("\033[F")
 			state = env.get_observation()
 			state = np.reshape(state, [1, 8])
 
 			action = act(state)
+			#print '1 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
 			observation, reward, done, info = env.step(action)
-
+			#print '2 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 			observation = np.reshape(observation, [1, 8])
 
 			remember(state, action, reward, observation, done)
+			running_rew = running_rew + reward
 
 			state = observation
 
-			if done or t == 5:
-				# print(sys.getsizeof(memory)/1000)
-				print("episode: {}, score: {}, eps: {}, memory: {}".format(e, env.information_metric, epsilon, len(memory)))
-				print(sys.getsizeof(memory)/1000)
+			if done or t == 50:
+				print("episode: {}, score: {}, eps: {}, memory: {}".format(e, running_rew, epsilon, len(memory)))
 				# observation = env.reset()
 				break
 
-			if len(memory) > 16:
-				replay(16)
-		# all_objects = muppy.get_objects()
-		# sum1 = summary.summarize(all_objects)
-		# # Prints out a summary of the large objects
-		# summary.print_(sum1)
-		# Get references to certain types of objects such as dataframe
-
+		if len(memory) > 32:
+			replay(32)
+		model.save_weights("weights/"+str(e)+'_my_model_weights.h5')
 
 main()
 		
