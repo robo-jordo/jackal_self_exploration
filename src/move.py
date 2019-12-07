@@ -8,6 +8,7 @@ from sensor_msgs.msg import PointCloud2, LaserScan
 from nav_msgs.msg import OccupancyGrid, Odometry
 from geometry_msgs.msg import PoseStamped, Twist
 from tf.transformations import euler_from_quaternion
+import resource
 
 
 class Movement:
@@ -30,8 +31,11 @@ class Movement:
 	directions = {"N":1.57,"NE":0.785,"E":0,"SE":-0.785,"S":-1.57,"SW":-2.355,"W":3.14,"NW":2.355}
 
 	def _odom_callback(self, data):
+		
 		orientation_q = data.pose.pose.orientation
+		
 		orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+		
 		(self.roll, self.pitch, self.yaw) = euler_from_quaternion (orientation_list)
 		self.x_pos = data.pose.pose.position.x
 		self.y_pos = data.pose.pose.position.y
@@ -115,7 +119,7 @@ class Movement:
 
 		# Turn to correct orientation
 
-		while(abs(self.yaw - self.target) > (0.005)):
+		while(abs(self.yaw - self.target) > (0.05)):
 			#print(str(self.target) + " , " + str(self.yaw))
 			#sys.stdout.write("\033[F")
 			self.new_twist.angular.z = 2 * (self.target-self.yaw)
