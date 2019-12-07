@@ -6,15 +6,17 @@ from numpy import inf
 import move
 import roslaunch
 import sys
+import tf
 from gazebo_msgs.msg import ModelState 
 from gazebo_msgs.srv import SetModelState
+from robot_localization.srv import *
 from std_msgs.msg import String
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
 from memory_profiler import profile
-
+import resource
 
 # function to assist in checking if two circular states are equal
 def circular_equality(states, observation):
@@ -38,7 +40,8 @@ class MachineLearning:
 		
 
 	# Gazebo services
-	set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+	set_gaz_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+	set_state = rospy.ServiceProxy('/set_pose', SetPose)
 	delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
 	spawn_model = rospy.ServiceProxy("gazebo/spawn_urdf_model", SpawnModel)
 	load_controller = rospy.ServiceProxy('controller_manager/load_controller', LoadController)
@@ -59,6 +62,17 @@ class MachineLearning:
 	pose.orientation.z = 0
 	pose.orientation.w = 1
 
+	pose2 = PoseWithCovarianceStamped()
+	pose2.pose.pose.position.x = 0
+	pose2.pose.pose.position.y = 0
+	pose2.pose.pose.position.z = 0.2
+	pose2.pose.pose.orientation.x = 0
+	pose2.pose.pose.orientation.y = 0
+	pose2.pose.pose.orientation.z = 0
+	pose2.pose.pose.orientation.w = 1
+	pose2.pose.covariance = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 	state_msg = ModelState()
 	state_msg.model_name = 'jackal'
@@ -76,7 +90,7 @@ class MachineLearning:
 	# uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
 	# roslaunch.configure_logging(uuid)
 	# launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/jordan/jackal_ws/src/jackal_exploration/launch/gmapping_no_output.launch'])
-	#launch.start()
+	# launch.start()
 	# cli_args = ['/home/jordan/jackal_ws/src/jackal_exploration/launch/gmapping_no_output.launch']
 	# roslaunch_args = cli_args[1:]
 	# roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
@@ -101,6 +115,8 @@ class MachineLearning:
 
 	new_movement = move.Movement()
 	new_movement.listener()
+
+	odom_broadcaster = tf.TransformBroadcaster()
 
 
 	# Callbacks
@@ -132,7 +148,6 @@ class MachineLearning:
 		unknowns = np.count_nonzero(map_data == -1)
 		self.information_metric = len(map_data)-unknowns
 
-
 	# function to set up callbacks
 	def listener(self):
 		rospy.Subscriber("/map", OccupancyGrid, self._reward_callback)
@@ -156,16 +171,22 @@ class MachineLearning:
 		# 	self.delete_model("jackal")
 		# except:
 		# 	print("None")
-		try:
-			rospy.wait_for_service("gazebo/set_model_state", timeout=20)
-			resp = self.set_state( self.state_msg )
+
+
+		#try:
+		rospy.wait_for_service("gazebo/set_model_state", timeout=20)
+		#rospy.wait_for_service("set_pose", timeout=20)
+		self.pose2.header.stamp = rospy.Time.now()
+		resp = self.set_gaz_state( self.state_msg )
+		resp = self.set_state(self.pose2)
+
+
 			# response = self.spawn_model("jackal",self.xml_string,"",self.pose,"world")
 			# print(response.success)
-		except (rospy.ServiceException), e:
-			print(e)
-		except:
-			print("Issue")
-		
+		# except (rospy.ServiceException), e:
+		# 	print(e)
+		# except:
+		# 	print("Issue")
 
 		# Wait for services to be available
 		# rospy.wait_for_service('controller_manager/load_controller')
@@ -179,18 +200,20 @@ class MachineLearning:
 		# self.load_controller("jackal_joint_publisher")
 		# # Start controllers
 		# self.switch_controller(["jackal_velocity_controller","jackal_joint_publisher"],[],2)
+
 		# try:
 		# 	self.launch.shutdown()
 		# except:
 		# 	print("Na")
-		# rospy.sleep(4)
-
 		# self.launch.start()
 		# print(sys.getsizeof(self.launch))
 		self.pub.publish("reset")
+		rospy.sleep(2)
+
+
 		self.information_metric = 0
 		self.old_info_metric = 0
-		print("New Jackal ready")
+		#print("New Jackal ready")
 
 	def get_observation(self):
 		""" Function to spawn new model and controllers in gazebo and start the controllers.
@@ -221,7 +244,8 @@ class MachineLearning:
 			None
 
 		"""
-		self.new_movement.move(action)
+		result = self.new_movement.move(action)
+		return result
 
 	def delta_score(self):
 		""" Function to return a reward
@@ -262,8 +286,12 @@ class MachineLearning:
 			info (int): ???? Nothing yet just mirrors OpenAi gym setup
 
 		"""
-		self.move_model(action)
-		reward = self.delta_score()
+		result = self.move_model(action)
+		if result == -1:
+			reward = -10000
+		else:
+			reward = self.delta_score()
+		# reward = self.delta_score()
 		return self.get_observation(), reward, 0, 0
 
 # Test case stuff
