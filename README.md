@@ -84,10 +84,14 @@ This means that this algorithm implementation can realistically only be used to 
 
 
 **Overview of Deep Q-learning:**
+Deep Q-Learning aims to solve issue of needing to store a Q-table in memory and visit all the states and try out actions from each state. This is achieved by using function approximators to approximate Q-values. This not only solves the memory issue of storing a Q-table but it also means that we do not need to exhaustively sample all possible states as the function approximator should be able to interpolate once it has been fitted well. The implementation of Q-learning in this project also makes use of memory replay.
+Changing the structure of the Keras neural network model can be easily done and allows for the use of classic neural networks, convolutional neural networks and recurrent neural networks
 
 **Overview of target network deep Q-learning**
+Using a target network is a solution brought forward by Deep Mind. This approach is used for Deep Q-learning implementations that use Neural networks. This aims to stabilize the training of the neural network in order to assist convergence. The basic idea is to use two neural networks one to #### and the other to ###. With the target neural network being updated with the weights from the main network every c iterations, where c is a tunable parameter. A more in depth guide to this can be found at [link target network page](blah blah blah)
 
 **Overview of double deep Q learning**
+
 
 
 ## Results
