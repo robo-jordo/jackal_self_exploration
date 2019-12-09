@@ -293,10 +293,10 @@ class MachineLearning:
 		result = self.move_model(action)
 		reward = self.delta_score()
 		if result == -1:
-			reward = -1
+			reward = -10000
 			self.collisions = self.collisions + 1
-		else:
-			reward = 1
+		# else:
+		# 	reward = 1
 		return self.get_observation(), reward, 0, 0
 
 # Test case stuff
