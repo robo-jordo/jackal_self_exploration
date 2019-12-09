@@ -46,37 +46,43 @@ Multiple stages of algorithms were implemented in the course of this project:
 Each of these approaches has its own python file in /src.
 Each algorithm had a specific goal or was used to fix the shortcomings of another algorithm for a specific goal.
 
+For all algorithms the action space is 8 equally spaced movements. 
+i.e. N,NE,E,SE,S,SW,W,NW
+
+In order to reduce the state size of LIDAR observations, some of the algorithms below make use of segmenting and/or binning the LIDAR readings. A figure showing an example of this can be seen below:
+
+!!!!! image of segments !!!!!
+
 ### * Standard Q-learning /SARSA
 
 **Applicable state representation:**
+(x, y) co-ordinates of the world
 
 **Learning goals and reward form:**
+Optimal exploration of a single environment, using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
 
 **Overview:**
+This implementation of Q-learning is only applicable to relatively small and discrete state and action spaces. If the LIDAR scans are segmented into 8 segments and binned into 5 discrete values this results in ???? states. Even if the number of states is reduced by recognizing the robot is omni directional so that states that are shifted around the circle are still equivalent there are still ??? states. This along with 8 actions for each state is an infeasible number of states to visit enough times to learn a policy. For this reason Q-learning with a table is only applicable to a state representation of discrete (x,y) co-ordinate values. This means that this algorithm implementation can realistically only be used to learn policies for individual static environments.
 
-### * Deep Q-learning
+### * Deep Q-learning variations
 
 **Applicable state representation:**
+* (x,y) co-ordinates of the world
+* full LIDAR data
+* Segmented and/binned LIDAR data 
+* Image of current understanding of map (Costmap output of Gmapping)
 
 **Learning goals and reward form:**
+* Obstacle avoidance, using any form of LIDAR information as state with negative rewards for bumping into objects.
+* Optimal exploration of a single environment (using x, y coordinates ), using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
+* Optimal exploration of a arbitrary environments (Using any form of LIDAR as state or Image of current understanding of map), using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
 
-**Overview:**
 
-### * Target network deep Q learning
+**Overview of Deep Q-learning:**
 
-**Applicable state representation:**
+**Overview of target network deep Q-learning**
 
-**Learning goals and reward form:**
-
-**Overview:**
-
-### * Double deep Q learning
-
-**Applicable state representation:**
-
-**Learning goals and reward form:**
-
-**Overview:**
+**Overview of double deep Q learning**
 
 
 ## Results
@@ -91,3 +97,6 @@ Each algorithm had a specific goal or was used to fix the shortcomings of anothe
 
 
 ## Future work
+* Dockerization
+* CNN
+* Changing lidar range
