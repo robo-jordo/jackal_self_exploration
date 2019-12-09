@@ -34,6 +34,7 @@ In order to use run reinforcement learning episodes safely, a gazebo simulation 
 
 I have modified various packages to suit the needs of my simulation.
 The packages that I have modified have been forked to my GitHub account and are linked with ##DEPS###. These packages need to be cloned into a catkin workspace with this repo and built from source by running catkin_make.
+
 A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) created by [jukindle](https://github.com/jukindle) was used in order to allow Gmapping to be reset by publishing to a topic (/syscommand). This is done in favor of stopping and starting Gmapping with the roslaunch API after each episode as I suspect that the Gmapping processes were not dying correctly with the latter approach.
 
 ## Algorithms
@@ -55,24 +56,28 @@ In order to reduce the state size of LIDAR observations, some of the algorithms 
 
 ### * Standard Q-learning /SARSA
 
-**Applicable state representation:**
+**Applicable state representations:**
 (x, y) co-ordinates of the world
 
-**Learning goals and reward form:**
+**Learning goals and reward forms:**
 Optimal exploration of a single environment, using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
 
 **Overview:**
-This implementation of Q-learning is only applicable to relatively small and discrete state and action spaces. If the LIDAR scans are segmented into 8 segments and binned into 5 discrete values this results in ???? states. Even if the number of states is reduced by recognizing the robot is omni directional so that states that are shifted around the circle are still equivalent there are still ??? states. This along with 8 actions for each state is an infeasible number of states to visit enough times to learn a policy. For this reason Q-learning with a table is only applicable to a state representation of discrete (x,y) co-ordinate values. This means that this algorithm implementation can realistically only be used to learn policies for individual static environments.
+This implementation of Q-learning is only applicable to relatively small and discrete state and action spaces. 
+
+If the LIDAR scans are segmented into 8 segments and binned into 5 discrete values this results in ???? states. Even if the number of states is reduced by recognizing the robot is omni directional so that states that are shifted around the circle are still equivalent there are still ??? states. This along with 8 actions for each state is an infeasible number of states to visit enough times to learn a policy. For this reason Q-learning with a table is only applicable to a state representation of discrete (x,y) co-ordinate values. 
+
+This means that this algorithm implementation can realistically only be used to learn policies for individual static environments as LDIAR readings cannot be used in the state.
 
 ### * Deep Q-learning variations
 
-**Applicable state representation:**
+**Applicable state representations:**
 * (x,y) co-ordinates of the world
 * full LIDAR data
 * Segmented and/binned LIDAR data 
 * Image of current understanding of map (Costmap output of Gmapping)
 
-**Learning goals and reward form:**
+**Learning goals and reward forms:**
 * Obstacle avoidance, using any form of LIDAR information as state with negative rewards for bumping into objects.
 * Optimal exploration of a single environment (using x, y coordinates ), using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
 * Optimal exploration of a arbitrary environments (Using any form of LIDAR as state or Image of current understanding of map), using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
@@ -99,4 +104,4 @@ This implementation of Q-learning is only applicable to relatively small and dis
 ## Future work
 * Dockerization
 * CNN
-* Changing lidar range
+* Changing LIDAR range
