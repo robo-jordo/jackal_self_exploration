@@ -46,40 +46,48 @@ Multiple stages of algorithms were implemented in the course of this project:
 Each of these approaches has its own python file in /src.
 Each algorithm had a specific goal or was used to fix the shortcomings of another algorithm for a specific goal.
 
-#### Standard Q-learning /SARSA
+### Standard Q-learning /SARSA
 
 **Applicable state representation:**
+
 **Learning goals and reward form:**
+
 **Overview:**
 
-#### Deep Q-learning
+### Deep Q-learning
 
 **Applicable state representation:**
+
 **Learning goals and reward form:**
+
 **Overview:**
 
-#### Target network deep Q learning
+### Target network deep Q learning
 
 **Applicable state representation:**
+
 **Learning goals and reward form:**
+
 **Overview:**
 
-#### Double deep Q learning
+### Double deep Q learning
 
 **Applicable state representation:**
+
 **Learning goals and reward form:**
+
 **Overview:**
 
 
 ## Results
 
-#### Standard Q-learning /SARSA
+### Standard Q-learning /SARSA
 
-#### Deep Q-learning
+### Deep Q-learning
 
-#### Target network deep Q learning
+### Target network deep Q learning
 
-#### Double deep Q learning
+### Double deep Q learning
 
 
 ## Future work
