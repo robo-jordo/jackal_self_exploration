@@ -105,6 +105,7 @@ def replay(batch_size):
 def main():
 	global epsilon
 	global log_values
+	f= open("status.txt","w+")
 	for e in range(3000):
 		log_values = []
 		state = env.reset()
@@ -142,6 +143,7 @@ def main():
 
 			if done or t == 99:
 				print("episode: {}, score: {}, eps: {}, memory: {}, collisions: {}".format(e, running_rew, epsilon, len(memory), env.collisions))
+				f.write("episode: {}, score: {}, eps: {}, memory: {}, collisions: {} \r\n".format(e, running_rew, epsilon, len(memory), env.collisions))
 				# observation = env.reset()
 				break
 
@@ -151,6 +153,7 @@ def main():
 		with open('moves/'+str(e) +'_file.csv', mode='w') as moves_file:
     			employee_writer = csv.writer(moves_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     			employee_writer.writerow(log_values)
+    f.close()
 main()
 
 #env.close()
