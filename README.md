@@ -21,7 +21,7 @@ The platform used for this project is the ClearPath Jackal. This is owing to the
 
 ## Simulation set up and explanation
 
-In order to use run reinforcement learning episodes safely, a gazebo simulation of the Jackal was used. Instructions for simulating the Jackal can be found on (ClearPaths website)[https://www.clearpathrobotics.com/assets/guides/jackal/simulation.html]. Some other packages such as Gmapping were used for this project ## Deps ??? ##
+In order to use run reinforcement learning episodes safely, a gazebo simulation of the Jackal was used. Instructions for simulating the Jackal can be found on [ClearPaths website](https://www.clearpathrobotics.com/assets/guides/jackal/simulation.html). Some other packages such as Gmapping were used for this project ## Deps ??? ##
 I have modified various packages to suit the needs of my simulation.
 The packages that I have modified have been forked to my GitHub account and are linked with ##DEPS###. These packages need to be cloned into a catkin workspace with this repo and built from source by running catkin_make.
 A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) created by [jukindle](https://github.com/jukindle) was used in order to allow Gmapping to be reset by publishing to a topic (/syscommand). This is done in favor of stopping and starting Gmapping with the roslaunch API after each episode as I suspect that the Gmapping processes were not dying correctly with the latter approach.
