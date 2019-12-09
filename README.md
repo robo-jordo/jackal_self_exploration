@@ -48,35 +48,27 @@ Each algorithm had a specific goal or was used to fix the shortcomings of anothe
 
 #### Standard Q-learning /SARSA
 
-######Applicable state representation:
-
-######Learning goals and reward form:
-
-######Overview:
+**Applicable state representation:**
+**Learning goals and reward form:**
+**Overview:**
 
 #### Deep Q-learning
 
-#####Applicable state representation:
-
-#####Learning goals and reward form:
-
-#####Overview:
+**Applicable state representation:**
+**Learning goals and reward form:**
+**Overview:**
 
 #### Target network deep Q learning
 
-######Applicable state representation:
-
-######Learning goals and reward form:
-
-######Overview:
+**Applicable state representation:**
+**Learning goals and reward form:**
+**Overview:**
 
 #### Double deep Q learning
 
-######Applicable state representation:
-
-######Learning goals and reward form:
-
-######Overview:
+**Applicable state representation:**
+**Learning goals and reward form:**
+**Overview:**
 
 
 ## Results
