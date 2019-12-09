@@ -7,7 +7,7 @@ import move
 import roslaunch
 import sys
 import tf
-from gazebo_msgs.msg import ModelState 
+from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState
 from robot_localization.srv import *
 from std_msgs.msg import String
@@ -15,7 +15,6 @@ from geometry_msgs.msg import Pose, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
-from memory_profiler import profile
 import resource
 
 # function to assist in checking if two circular states are equal
@@ -24,9 +23,9 @@ def circular_equality(states, observation):
 	index = -1
 	doubled_obs = np.concatenate((observation, observation))
 	print(doubled_obs)
-	doubled_obs = ''.join(map(str, doubled_obs)) 
+	doubled_obs = ''.join(map(str, doubled_obs))
 	for i in range(len(states)):
-		comp_string = ''.join(map(str, states[i])) 
+		comp_string = ''.join(map(str, states[i]))
 		if comp_string in doubled_obs:
 			exists = True
 			index = i
@@ -37,7 +36,7 @@ class MachineLearning:
 
 	def __init__(self):
 		self.listener()
-		
+
 
 	# Gazebo services
 	set_gaz_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
@@ -100,13 +99,14 @@ class MachineLearning:
 	# Global variables and data structures
 
 	actions = np.array(["N","NW","W","SW","S","SE","E","NE"])
-	  
+
 	observation = np.array([0,0,0,0,0,0,0,0])
 	scans = [0,0,0,0,0,0,0,0]
 
 	episodes = 3
 	discount = 0.5
 	alpha = 0.1
+	collisions = 0
 
 	information_metric = 0
 	old_info_metric = 0
@@ -132,7 +132,7 @@ class MachineLearning:
 
 		"""
 		self.scans = str(data.data).split("&")
-		
+
 	def _reward_callback(self, data):
 		""" Function to spawn new model and controllers in gazebo and start the controllers.
 
@@ -228,10 +228,13 @@ class MachineLearning:
 		"""
 		temp = self.scans
 		for scan in range(len(temp)):
-			if temp[scan] == inf:
+			#print(temp[scan])
+			if float(temp[scan]) >100:
 				temp[scan] = 0
+				#print("GOT ONE")
 			else:
 				temp[scan] = float(temp[scan])
+		#print("temp" + str(temp))
 		return temp
 
 	def move_model(self, action):
@@ -270,6 +273,7 @@ class MachineLearning:
 
 		"""
 		self.new_model()
+		self.collisions = 0
 		return self.get_observation()
 
 	def step(self, action):
@@ -287,11 +291,12 @@ class MachineLearning:
 
 		"""
 		result = self.move_model(action)
+		reward = self.delta_score()
 		if result == -1:
-			reward = -10000
+			reward = -1
+			self.collisions = self.collisions + 1
 		else:
-			reward = self.delta_score()
-		# reward = self.delta_score()
+			reward = 1
 		return self.get_observation(), reward, 0, 0
 
 # Test case stuff
@@ -311,4 +316,3 @@ def numpy_test():
 
 if __name__ == '__main__':
 	numpy_test()
-
