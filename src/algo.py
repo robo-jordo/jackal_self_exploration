@@ -24,9 +24,9 @@ import resource
 
 
 # global variables
-learning_rate = 0.0001
+learning_rate = 0.000001
 action_size = 8
-state_size = 8
+
 epsilon = 1
 epsilon_min = 0.01
 epsilon_decay = 0.995
@@ -40,16 +40,22 @@ env = ml.MachineLearning()
 
 # env = gym.make("CartPole-v0")
 # Reset environment
+# env.obs_type = "pos"
 observation = env.reset()
+
+if env.obs_type == "pos":
+	state_size = 2
+else:
+	state_size = 8
 
 # Neural Net for Deep Q Learning
 # Sequential() creates the foundation of the layers.
 model = Sequential()
 # 'Dense' is the basic form of a neural network layer
 # Input Layer of state size(4) and Hidden Layer with 24 nodes
-model.add(Dense(8, input_dim=state_size, activation='tanh'))
+model.add(Dense(16, input_dim=state_size, activation='tanh'))
 # Hidden layer with 24 nodes
-#model.add(Dense(24, activation='relu'))
+#model.add(Dense(16, activation='relu'))
 # Output Layer with # of actions: 2 nodes (left, right)
 model.add(Dense(action_size, activation='linear'))
 # Create the model based on the information above
@@ -112,7 +118,7 @@ def main():
 		if (state == [0]*state_size):
 			print("points not being published")
 		#assert(state != [0]*state_size)
-		state = np.reshape(state, [1, 8])
+		state = np.reshape(state, [1, state_size])
 		running_rew = 0
 
 		if epsilon == 0:
@@ -127,14 +133,14 @@ def main():
 			print(str(t+1)+"/100")
 			sys.stdout.write("\033[F")
 			state = env.get_observation()
-			state = np.reshape(state, [1, 8])
+			state = np.reshape(state, [1, state_size])
 
 			action = act(state)
 			#print '1 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 			#print("action: "+str(action))
 			observation, reward, done, info = env.step(action)
 			#print '2 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-			observation = np.reshape(observation, [1, 8])
+			observation = np.reshape(observation, [1, state_size])
 
 			remember(state, action, reward, observation, done)
 			running_rew = running_rew + reward
@@ -144,6 +150,7 @@ def main():
 			if done or t == 99:
 				print("episode: {}, score: {}, eps: {}, memory: {}, collisions: {}".format(e, running_rew, epsilon, len(memory), env.collisions))
 				f.write("episode: {}, score: {}, eps: {}, memory: {}, collisions: {} \r\n".format(e, running_rew, epsilon, len(memory), env.collisions))
+				f.flush()
 				# observation = env.reset()
 				break
 
@@ -153,7 +160,7 @@ def main():
 		with open('moves/'+str(e) +'_file.csv', mode='w') as moves_file:
     			employee_writer = csv.writer(moves_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     			employee_writer.writerow(log_values)
-    f.close()
+	f.close()
 main()
 
 #env.close()
