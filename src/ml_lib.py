@@ -302,6 +302,8 @@ class MachineLearning:
 
 		if reward <5:
 			reward = -1000
+		else:
+			reward = 1000
 		if result == -1:
 			reward = -10000
 			self.collisions = self.collisions + 1
