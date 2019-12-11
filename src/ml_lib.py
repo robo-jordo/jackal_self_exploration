@@ -7,12 +7,14 @@ import move
 import roslaunch
 import sys
 import tf
+import random
+
 from gazebo_msgs.msg import ModelState
-from gazebo_msgs.srv import SetModelState
+from gazebo_msgs.srv import SetModelState, GetModelState
 from robot_localization.srv import *
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, PoseWithCovarianceStamped
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, Odometry
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
 import resource
@@ -40,6 +42,7 @@ class MachineLearning:
 
 	# Gazebo services
 	set_gaz_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+	get_gaz_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
 	set_state = rospy.ServiceProxy('/set_pose', SetPose)
 	delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
 	spawn_model = rospy.ServiceProxy("gazebo/spawn_urdf_model", SpawnModel)
@@ -83,6 +86,8 @@ class MachineLearning:
 	state_msg.pose.orientation.z = 0
 	state_msg.pose.orientation.w = 1
 
+	start_points = [(-2,-1.15),(-4.5,-1.3),(-4.5,8.2),(-1.9,1.6),(5.5,-5.3),(5.75,-8.5),(-6.75,-4.5)]
+
 	# Roslaunch api usage for gmapping reset
 
 	pub = rospy.Publisher('/syscommand', String, queue_size=1)
@@ -111,13 +116,15 @@ class MachineLearning:
 	information_metric = 0
 	old_info_metric = 0
 
+	current_co_ord = []
+	obs_type = "scan"
+
 	# Import movement object to move model
 
 	new_movement = move.Movement()
 	new_movement.listener()
 
 	odom_broadcaster = tf.TransformBroadcaster()
-
 
 	# Callbacks
 	def _avs_callback(self,data):
@@ -132,6 +139,20 @@ class MachineLearning:
 
 		"""
 		self.scans = str(data.data).split("&")
+
+	def _pos_callback(self,data):
+                """ Function to spawn new model and controllers in gazebo and start the controllers.
+
+                Args:
+                        param1: The first parameter.
+                        param2: The second parameter.
+
+                Returns:
+                        The return value. True for success, False otherwise.
+
+                """
+		if data.child_frame_id == 'base_link':
+                	self.current_co_ord = [data.pose.pose.position.x , data.pose.pose.position.y]
 
 	def _reward_callback(self, data):
 		""" Function to spawn new model and controllers in gazebo and start the controllers.
@@ -152,7 +173,7 @@ class MachineLearning:
 	def listener(self):
 		rospy.Subscriber("/map", OccupancyGrid, self._reward_callback)
 		rospy.Subscriber("scan_avs", String, self._avs_callback)
-
+		#rospy.Subscriber("/odometry/filtered", Odometry, self._pos_callback)
 
 	# Usable methods from this class to assist machine learning algorithms
 	#@profile
@@ -167,47 +188,27 @@ class MachineLearning:
 			The return value. True for success, False otherwise.
 
 		"""
-		# try:
-		# 	self.delete_model("jackal")
-		# except:
-		# 	print("None")
-
-
-		#try:
 		rospy.wait_for_service("gazebo/set_model_state", timeout=20)
 		#rospy.wait_for_service("set_pose", timeout=20)
 		self.pose2.header.stamp = rospy.Time.now()
+
+		start_pose = random.choice(self.start_points)
+
+		self.state_msg.pose.position.x = start_pose[0]
+	        self.state_msg.pose.position.y = start_pose[1]
+
+		self.pose2.pose.pose.position.x = start_pose[0]
+        	self.pose2.pose.pose.position.y = start_pose[1]
+
+		# Reset Gazebo
 		resp = self.set_gaz_state( self.state_msg )
+
+		# Reset ekf_localization
 		resp = self.set_state(self.pose2)
 
-
-			# response = self.spawn_model("jackal",self.xml_string,"",self.pose,"world")
-			# print(response.success)
-		# except (rospy.ServiceException), e:
-		# 	print(e)
-		# except:
-		# 	print("Issue")
-
-		# Wait for services to be available
-		# rospy.wait_for_service('controller_manager/load_controller')
-		# rospy.wait_for_service('controller_manager/switch_controller')
-		# rospy.wait_for_service('controller_manager/unload_controller')
-		# # Unload controllers
-		# self.unload_controller("jackal_joint_publisher")
-		# self.unload_controller("jackal_velocity_controller")
-		# # Load controllers
-		# self.load_controller("jackal_velocity_controller")
-		# self.load_controller("jackal_joint_publisher")
-		# # Start controllers
-		# self.switch_controller(["jackal_velocity_controller","jackal_joint_publisher"],[],2)
-
-		# try:
-		# 	self.launch.shutdown()
-		# except:
-		# 	print("Na")
-		# self.launch.start()
-		# print(sys.getsizeof(self.launch))
+		# Reset Gmapping map
 		self.pub.publish("reset")
+
 		rospy.sleep(2)
 
 
@@ -226,16 +227,22 @@ class MachineLearning:
 			The return value. True for success, False otherwise.
 
 		"""
-		temp = self.scans
-		for scan in range(len(temp)):
-			#print(temp[scan])
-			if float(temp[scan]) >100:
-				temp[scan] = 0
-				#print("GOT ONE")
-			else:
-				temp[scan] = float(temp[scan])
-		#print("temp" + str(temp))
-		return temp
+		if (self.obs_type == "scan"):
+			temp = self.scans
+			for scan in range(len(temp)):
+				#print(temp[scan])
+				if float(temp[scan]) >100:
+					temp[scan] = 0
+					#print("GOT ONE")
+				else:
+					temp[scan] = float(temp[scan])
+			#print("temp" + str(temp))
+			return temp
+		elif (self.obs_type == "pos"):
+			object_coords = self.get_gaz_state("jackal","")
+			return [object_coords.pose.position.x , object_coords.pose.position.y]
+		else:
+			print("Set observation type") 
 
 	def move_model(self, action):
 		""" Function to move the gazebo model using Movement object.
@@ -292,6 +299,9 @@ class MachineLearning:
 		"""
 		result = self.move_model(action)
 		reward = self.delta_score()
+
+		if reward <5:
+			reward = -1000
 		if result == -1:
 			reward = -10000
 			self.collisions = self.collisions + 1
