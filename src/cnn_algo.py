@@ -16,9 +16,10 @@ from nav_msgs.msg import OccupancyGrid
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from controller_manager_msgs.srv import LoadController, UnloadController, SwitchController
 
-from keras import optimizers
+from keras import optimizers, losses
 from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.layers import Dense, Activation, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D
 
 import resource
 
@@ -42,22 +43,30 @@ env = ml.MachineLearning()
 # Reset environment
 # env.obs_type = "pos"
 observation = env.reset()
+env.obs_type = "img"
 
-if env.obs_type == "pos":
-	state_size = 2
-else:
-	state_size = 8
-
+model = Sequential()
+model.add(Conv2D(32, 8, 8, subsample=(4, 4), input_shape=(64, 64, 1)))
+model.add(Activation('relu'))
+model.add(Conv2D(64, 4, 4, subsample=(2, 2)))
+model.add(Activation('relu'))
+model.add(Flatten())
+model.add(Dense(512))
+model.add(Activation('linear'))
+model.add(Dense(action_size))
+model.compile(loss=losses.categorical_crossentropy,
+              optimizer=optimizers.Adadelta(),
+              metrics=['accuracy'])
 # Neural Net for Deep Q Learning
 # Sequential() creates the foundation of the layers.
-model = Sequential()
-# 'Dense' is the basic form of a neural network layer
-# Input Layer of state size(4) and Hidden Layer with 24 nodes
-model.add(Dense(16, input_dim=state_size, activation='tanh'))
-# Hidden layer with 24 nodes
-#model.add(Dense(16, activation='relu'))
-# Output Layer with # of actions: 2 nodes (left, right)
-model.add(Dense(action_size, activation='linear'))
+# model = Sequential()
+# # 'Dense' is the basic form of a neural network layer
+# # Input Layer of state size(4) and Hidden Layer with 24 nodes
+# model.add(Dense(16, input_dim=state_size, activation='tanh'))
+# # Hidden layer with 24 nodes
+# #model.add(Dense(16, activation='relu'))
+# # Output Layer with # of actions: 2 nodes (left, right)
+# model.add(Dense(action_size, activation='linear'))
 # Create the model based on the information above
 model.compile(loss='mse',optimizer=optimizers.Adam(lr=learning_rate))
 #model.load_weights('weights/2157_my_model_weights.h5')
@@ -98,17 +107,17 @@ def replay(batch_size):
 # Loop through episodes
 
 def main():
-	
+
 	global epsilon
 	global log_values
 	f= open("status.txt","w+")
 	for e in range(3000):
 		log_values = []
 		state = env.reset()
-		if (state == [0]*state_size):
-			print("points not being published")
+		# if (state == [0]*state_size):
+		# 	print("points not being published")
 		#assert(state != [0]*state_size)
-		state = np.reshape(state, [1, state_size])
+		state = np.reshape(state, [1, 64, 64, 1])
 		running_rew = 0
 
 		if epsilon == 0:
@@ -123,29 +132,31 @@ def main():
 			print(str(t+1)+"/100")
 			sys.stdout.write("\033[F")
 			state = env.get_observation()
-			state = np.reshape(state, [1, state_size])
+			state = np.reshape(state, [1, 64, 64, 1])
+			# state = np.reshape(state, [1, state_size])
 
 			action = act(state)
 			#print '1 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 			#print("action: "+str(action))
 			observation, reward, done, info = env.step(action)
 			#print '2 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-			observation = np.reshape(observation, [1, state_size])
+			# observation = np.reshape(observation, [1, state_size])
+			observation = np.reshape(observation, [1, 64, 64, 1])
 
 			remember(state, action, reward, observation, done)
 			running_rew = running_rew + reward
 
 			state = observation
 
-			if done or t == 99:
+			if done or t == 30:
 				print("episode: {}, score: {}, eps: {}, memory: {}, collisions: {}".format(e, running_rew, epsilon, len(memory), env.collisions))
 				f.write("episode: {}, score: {}, eps: {}, memory: {}, collisions: {} \r\n".format(e, running_rew, epsilon, len(memory), env.collisions))
 				f.flush()
 				# observation = env.reset()
 				break
 
-		if len(memory) > 84:
-			replay(84)
+		if len(memory) > 24:
+			replay(24)
 		model.save_weights("weights/"+str(e)+'_my_model_weights.h5')
 		with open('moves/'+str(e) +'_file.csv', mode='w') as moves_file:
     			employee_writer = csv.writer(moves_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

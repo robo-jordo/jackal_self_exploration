@@ -4,6 +4,7 @@ import os
 import numpy as np
 from numpy import inf
 import move
+import mapper
 import roslaunch
 import sys
 import tf
@@ -126,6 +127,10 @@ class MachineLearning:
 
 	odom_broadcaster = tf.TransformBroadcaster()
 
+	mi = mapper.MapImage()
+	mi.listener()
+
+
 	# Callbacks
 	def _avs_callback(self,data):
 		""" Function to spawn new model and controllers in gazebo and start the controllers.
@@ -241,6 +246,8 @@ class MachineLearning:
 		elif (self.obs_type == "pos"):
 			object_coords = self.get_gaz_state("jackal","")
 			return [object_coords.pose.position.x , object_coords.pose.position.y]
+		elif (self.obs_type == "img"):
+			return self.mi.horizontal_img
 		else:
 			print("Set observation type") 
 
@@ -301,11 +308,11 @@ class MachineLearning:
 		reward = self.delta_score()
 
 		if reward <5:
-			reward = -1000
+			reward = -0.5
 		else:
-			reward = 1000
+			reward = 0.5
 		if result == -1:
-			reward = -10000
+			reward = -1
 			self.collisions = self.collisions + 1
 		# else:
 		# 	reward = 1
