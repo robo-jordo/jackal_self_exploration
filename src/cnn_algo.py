@@ -54,9 +54,19 @@ model.add(Flatten())
 model.add(Dense(512))
 model.add(Activation('linear'))
 model.add(Dense(action_size))
-model.compile(loss=losses.categorical_crossentropy,
-              optimizer=optimizers.Adadelta(),
-              metrics=['accuracy'])
+model.compile(loss='mse',optimizer=optimizers.Adam(lr=0.00001))
+
+
+target_model = Sequential()
+target_model.add(Conv2D(32, 8, 8, subsample=(4, 4), input_shape=(64, 64, 1)))
+target_model.add(Activation('relu'))
+target_model.add(Conv2D(64, 4, 4, subsample=(2, 2)))
+target_model.add(Activation('relu'))
+target_model.add(Flatten())
+target_model.add(Dense(512))
+target_model.add(Activation('linear'))
+target_model.add(Dense(action_size))
+target_model.compile(loss='mse',optimizer=optimizers.Adam(lr=0.00001))
 # Neural Net for Deep Q Learning
 # Sequential() creates the foundation of the layers.
 # model = Sequential()
@@ -68,7 +78,7 @@ model.compile(loss=losses.categorical_crossentropy,
 # # Output Layer with # of actions: 2 nodes (left, right)
 # model.add(Dense(action_size, activation='linear'))
 # Create the model based on the information above
-model.compile(loss='mse',optimizer=optimizers.Adam(lr=learning_rate))
+#model.compile(loss='mse',optimizer=optimizers.Adam(lr=learning_rate))
 #model.load_weights('weights/2157_my_model_weights.h5')
 
 indo = {"N":0,"NW":1,"W":2,"SW":3,"S":4,"SE":5,"E":6,"NE":7}
@@ -90,17 +100,22 @@ def act(state):
 def remember(state, action, reward, next_state, done):
 		memory.append((state, action, reward, next_state, done))
 
+def update_weights():
+	global target_model
+	target_model.set_weights(model.get_weights())
+
 def replay(batch_size):
 		global epsilon
+		global model
 		minibatch = random.sample(memory, batch_size)
 		for state, action, reward, next_state, done in minibatch:
 			target = reward
 			if not done:
-			  target = reward + gamma * np.amax(model.predict(next_state)[0])
-			target_f = model.predict(state)
+			  target_next = reward + gamma * np.amax(target_model.predict(next_state)[0])
+			target_now = model.predict(state)
 
-			target_f[0][indo[action]] = target
-			model.fit(state, target_f, epochs=1, verbose=0)
+			target_now[0][indo[action]] = target_next
+			model.fit(state, target_now, epochs=1, verbose=0)
 		if epsilon > epsilon_min:
 			epsilon *= epsilon_decay
 
@@ -155,8 +170,9 @@ def main():
 				# observation = env.reset()
 				break
 
-		if len(memory) > 24:
-			replay(24)
+			if len(memory) > 32:
+				replay(32)
+		update_weights()
 		model.save_weights("weights/"+str(e)+'_my_model_weights.h5')
 		with open('moves/'+str(e) +'_file.csv', mode='w') as moves_file:
     			employee_writer = csv.writer(moves_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
