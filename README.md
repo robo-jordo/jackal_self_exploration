@@ -23,11 +23,11 @@ for real world run:
 ## Contents of repo:
 #### launch
 
-* **x_y.launch:** 
+* **x_y.launch:**  
     launches everything for a run of deep Q-learning using x,y position as state.
-* **scan_segs.launch:** 
+* **scan_segs.launch:**  
     launches everything for a run of deep Q-learning using the averages of 8 scan segments as state.
-* **cnn.launch:** 
+* **cnn.launch:**  
     launches everything for a run of deep Q-learning using images of the map from gmapping as state
 
 #### src
