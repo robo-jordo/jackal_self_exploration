@@ -1,0 +1,11 @@
+<launch>
+	<include file="$(find jackal_gazebo)/launch/jackal_world.launch" />
+	<arg name="config" value="front_laser" />
+	<arg name="headless" value="true" />
+	<arg name="gui" value="false" />
+	<node name="points" pkg="jackal_exploration" type="points.py" />
+	<node name="gmap" pkg="jackal_exploration" type="gmap_no_output" />
+  	<node name="algo" pkg="jackal_exploration" type="cnn_algo.py" output="screen" />
+  	<arg name="obs_type" value="pos" />
+  	<param name="observation_type" type="string" value="scan" />
+</launch>

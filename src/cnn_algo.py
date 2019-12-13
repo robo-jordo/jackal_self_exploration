@@ -8,8 +8,9 @@ import random
 import sys
 import gc
 import csv
-
+import resource
 import roslaunch
+
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import OccupancyGrid
@@ -20,9 +21,6 @@ from keras import optimizers, losses
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
-
-import resource
-
 
 # global variables
 learning_rate = 0.000001
@@ -36,51 +34,38 @@ gamma = 0.95
 rospy.init_node('RL', anonymous=True)
 memory = collections.deque(maxlen=5000)
 
-# Create openai environment
+# Create ml environment
 env = ml.MachineLearning()
 
-# env = gym.make("CartPole-v0")
-# Reset environment
-# env.obs_type = "pos"
-observation = env.reset()
 env.obs_type = "img"
 
-model = Sequential()
-model.add(Conv2D(32, 8, 8, subsample=(4, 4), input_shape=(64, 64, 1)))
-model.add(Activation('relu'))
-model.add(Conv2D(64, 4, 4, subsample=(2, 2)))
-model.add(Activation('relu'))
-model.add(Flatten())
-model.add(Dense(512))
-model.add(Activation('linear'))
-model.add(Dense(action_size))
-model.compile(loss='mse',optimizer=optimizers.Adam(lr=0.00001))
+# observation = env.reset()
+
+# Function to return standard nn
+def create_nn():
+	nn = Sequential()
+	nn.add(Dense(16, input_dim=state_size, activation='tanh'))
+	nn.add(Dense(action_size, activation='linear'))
+	nn.compile(loss='mse',optimizer=optimizers.Adam(lr=learning_rate))
+	return nn
+
+# Function to return convolutional nn
+def create_cnn():
+	nn = Sequential()
+	nn.add(Conv2D(32, 8, 8, subsample=(4, 4), input_shape=(64, 64, 1)))
+	nn.add(Activation('relu'))
+	nn.add(Conv2D(64, 4, 4, subsample=(2, 2)))
+	nn.add(Activation('relu'))
+	nn.add(Flatten())
+	nn.add(Dense(512))
+	nn.add(Activation('linear'))
+	nn.add(Dense(action_size))
+	nn.compile(loss='mse',optimizer=optimizers.Adam(lr=0.00001))
+	return nn
 
 
-target_model = Sequential()
-target_model.add(Conv2D(32, 8, 8, subsample=(4, 4), input_shape=(64, 64, 1)))
-target_model.add(Activation('relu'))
-target_model.add(Conv2D(64, 4, 4, subsample=(2, 2)))
-target_model.add(Activation('relu'))
-target_model.add(Flatten())
-target_model.add(Dense(512))
-target_model.add(Activation('linear'))
-target_model.add(Dense(action_size))
-target_model.compile(loss='mse',optimizer=optimizers.Adam(lr=0.00001))
-# Neural Net for Deep Q Learning
-# Sequential() creates the foundation of the layers.
-# model = Sequential()
-# # 'Dense' is the basic form of a neural network layer
-# # Input Layer of state size(4) and Hidden Layer with 24 nodes
-# model.add(Dense(16, input_dim=state_size, activation='tanh'))
-# # Hidden layer with 24 nodes
-# #model.add(Dense(16, activation='relu'))
-# # Output Layer with # of actions: 2 nodes (left, right)
-# model.add(Dense(action_size, activation='linear'))
-# Create the model based on the information above
-#model.compile(loss='mse',optimizer=optimizers.Adam(lr=learning_rate))
-#model.load_weights('weights/2157_my_model_weights.h5')
 
+# dict to map actions to index of nn output
 indo = {"N":0,"NW":1,"W":2,"SW":3,"S":4,"SE":5,"E":6,"NE":7}
 
 log_values = []
@@ -88,53 +73,63 @@ log_values = []
 def act(state):
 	global log_values
 	if np.random.rand() <= epsilon:
-		# The agent acts randomly
+		# return random action from action space
 		return np.random.choice(env.actions)
 
-	# Predict the reward value based on the given state
+	# Predict expected reward based on the given state
 	act_values = model.predict(state)
-	# Pick the action based on the predicted reward
 	log_values.append(env.actions[np.argmax(act_values[0])])
+	# Return best action based on the prediction
 	return env.actions[np.argmax(act_values[0])]
 
 def remember(state, action, reward, next_state, done):
 		memory.append((state, action, reward, next_state, done))
 
 def update_weights():
+	# Copy weights from main network to target network
 	global target_model
 	target_model.set_weights(model.get_weights())
 
 def replay(batch_size):
-		global epsilon
-		global model
-		minibatch = random.sample(memory, batch_size)
-		for state, action, reward, next_state, done in minibatch:
-			target = reward
-			if not done:
-			  target_next = reward + gamma * np.amax(target_model.predict(next_state)[0])
-			target_now = model.predict(state)
+	# Memory replay
+	global epsilon
+	global model
+	# Get random batch from memory buffer
+	minibatch = random.sample(memory, batch_size)
+	for state, action, reward, next_state, done in minibatch:
+		target_next = reward
+		if not done:
+			# Target value calculation
+			target_next = reward + gamma * np.amax(target_model.predict(next_state)[0])
+		# Value prediction for all actions
+		target_now = model.predict(state)
+		# Insert value of action taken
+		target_now[0][indo[action]] = target_next
+		# Fit neural net 
+		model.fit(state, target_now, epochs=1, verbose=0)
+	if epsilon > epsilon_min:
+		epsilon *= epsilon_decay
 
-			target_now[0][indo[action]] = target_next
-			model.fit(state, target_now, epochs=1, verbose=0)
-		if epsilon > epsilon_min:
-			epsilon *= epsilon_decay
-
-# Loop through episodes
 
 def main():
-
 	global epsilon
 	global log_values
+	# open file to log progress
 	f= open("status.txt","w+")
+
 	for e in range(3000):
+		# init vars
 		log_values = []
-		state = env.reset()
-		# if (state == [0]*state_size):
-		# 	print("points not being published")
-		#assert(state != [0]*state_size)
-		state = np.reshape(state, [1, 64, 64, 1])
 		running_rew = 0
 
+		# reset environment and store observed state
+		state = env.reset()
+		if env.obs_type == "img":
+			state = np.reshape(state, [1, 64, 64, 1])
+		else:
+			state = np.reshape(state, [1, state_size])
+
+		# Try learned policy without random actions every 10 epsiodes
 		if epsilon == 0:
 			epsilon =  stored_eps
 			print("reverting to training")
@@ -142,27 +137,42 @@ def main():
 			stored_eps = epsilon
 			epsilon = 0
 			print("Trying policy")
+
+		# loop for steps in episode
 		for t in range(2000):
+
 			result = gc.collect()
+
+			# dynamically show progress
 			print(str(t+1)+"/100")
 			sys.stdout.write("\033[F")
+
+			# Observe current state
 			state = env.get_observation()
-			state = np.reshape(state, [1, 64, 64, 1])
-			# state = np.reshape(state, [1, state_size])
+			if env.obs_type == "img":
+				state = np.reshape(state, [1, 64, 64, 1])
+			else:
+				state = np.reshape(state, [1, state_size])
 
+			# Choose next action to take
 			action = act(state)
-			#print '1 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-			#print("action: "+str(action))
-			observation, reward, done, info = env.step(action)
-			#print '2 Memory usage: %s (kb)' % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-			# observation = np.reshape(observation, [1, state_size])
-			observation = np.reshape(observation, [1, 64, 64, 1])
 
+			# Step environment and store result
+			observation, reward, done, info = env.step(action)
+			if env.obs_type == "img":
+				observation = np.reshape(observation, [1, 64, 64, 1])
+			else:
+				state = np.reshape(state, [1, state_size])
+
+			# Store experience to memory buffer
 			remember(state, action, reward, observation, done)
+
+			# Increment reward
 			running_rew = running_rew + reward
 
 			state = observation
 
+			# End episode print progress and write to file
 			if done or t == 30:
 				print("episode: {}, score: {}, eps: {}, memory: {}, collisions: {}".format(e, running_rew, epsilon, len(memory), env.collisions))
 				f.write("episode: {}, score: {}, eps: {}, memory: {}, collisions: {} \r\n".format(e, running_rew, epsilon, len(memory), env.collisions))
@@ -170,14 +180,38 @@ def main():
 				# observation = env.reset()
 				break
 
+			# Train on memory buffer
 			if len(memory) > 32:
 				replay(32)
-		update_weights()
-		model.save_weights("weights/"+str(e)+'_my_model_weights.h5')
-		with open('moves/'+str(e) +'_file.csv', mode='w') as moves_file:
-    			employee_writer = csv.writer(moves_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    			employee_writer.writerow(log_values)
-	f.close()
-main()
 
-#env.close()
+		# Copy weights from main network to target network
+		update_weights()
+
+		# store weights
+		model.save_weights("weights/"+str(e)+'_my_model_weights.h5')
+
+		# Store policy based moves taken
+		with open('moves/'+str(e) +'_file.csv', mode='w') as moves_file:
+				employee_writer = csv.writer(moves_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+				employee_writer.writerow(log_values)
+	f.close()
+
+
+if __name__=="__main__":
+	try:
+		env.obs_type = rospy.get_param("/observation_type")
+	else:
+		env.obs_type = "scan"
+	print("using " + env.obs_type + " as observation")
+	if env.obs_type == "img":
+		model = create_cnn()
+		target_model = create_cnn()
+	elif env.obs_type == "pos":
+		state_size = 2
+		model = create_cnn()
+		target_model = create_cnn()
+	elif env.obs_type == "scan":
+		state_size = 8
+		model = create_cnn()
+		target_model = create_cnn()
+	main()

@@ -56,7 +56,7 @@ A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) c
     This file implements the actual reinforcement learning algorithms. This is done by creating an object of the MachineLearning class from the [ml_lib.py](src/ml_lib.py) file which allows for easy interaction with the Gazebo simulated environment.
 
     This file takes arguments to determine which variant of the RL algorithm to run.
-    ## PUT ARGS HERE###
+    !!!!!!!!!!!!!!!!PUT ARGS HERE!!!!!!!!!!!!
 
 * **move.py:**
     This file implements the Movement class used to command movements of the robot in the Gazebo simulation. 
@@ -79,9 +79,9 @@ A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) c
         image = mi.horizontal_img
     ```
 
-    This file can also be run as its own node in order to see the image being output from the Gmapping data with openCV
+    This file can also be run as its own node in order to see the image being output from the Gmapping data with openCV.
 
-    
+
 ## Installing this package and dependencies
 
 
@@ -93,4 +93,4 @@ A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) c
 * Changing LIDAR range
 
 A note on memory leaks
-A memory leak type problem occurred where all the computers memory was eventually being used up by the long running code, this was a hard problem to trace and took up much time. As a result I discovered that spawning and deleting models in gazebo repetitively can cause gazebos memory usage to increase to avoid this, the same modle is imply respawned which caused the issue of it respawning in gazebo but not in the ROS ekf_localization node which needs to be respawned seperately useing the set_pose service. this incorrect respawing caused issues in the data structure that holds the map data. As the robot was drifting away from the fixed centre of the map frame which caused the map to keep grwoing to accomodate this even though most of the map was empty. Finally the roslaunch api was problematic in shutting down nodes, this could have been fixed but luckily a forked version of gmapping with the opton to reset the map has been created, so I used that instead in order to save time.
+A memory leak type problem occurred where all the computers memory was eventually being used up by the long running code, this was a hard problem to trace and took up much time. As a result I discovered that spawning and deleting models in gazebo repetitively can cause gazebos memory usage to increase to avoid this, the same model is imply re-spawned which caused the issue of it re-spawning in gazebo but not in the ROS ekf_localization node which needs to be re-spawned separately using the set_pose service. this incorrect re-spawning caused issues in the data structure that holds the map data. As the robot was drifting away from the fixed center of the map frame which caused the map to keep growing to accommodate this even though most of the map was empty. Finally the roslaunch api was problematic in shutting down nodes, this could have been fixed but luckily a forked version of gmapping with the option to reset the map has been created, so I used that instead in order to save time.

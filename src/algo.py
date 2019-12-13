@@ -28,7 +28,7 @@ learning_rate = 0.000001
 action_size = 8
 
 epsilon = 1
-epsilon_min = 0.01
+epsilon_min = 0.2
 epsilon_decay = 0.995
 gamma = 0.95
 
