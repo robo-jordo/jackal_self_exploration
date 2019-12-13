@@ -20,27 +20,8 @@ for real world run:
 
 * Jackal and 360 planar Lidar or 3D Lidar
 
-## Contents of repo:
-#### launch
-
-* **x_y.launch:**  
-    launches everything for a run of deep Q-learning using x,y position as state.
-* **scan_segs.launch:**  
-    launches everything for a run of deep Q-learning using the averages of 8 scan segments as state.
-* **cnn.launch:**  
-    launches everything for a run of deep Q-learning using images of the map from gmapping as state
-
-#### src
-
-* **algo.py:**
-* **ml_lib.py:**
-* **move.py:**
-* **points.py:**
-* **mapper.py:**
-
 ## Hardware
 The platform used for this project is the ClearPath Jackal. This is owing to the fact that the Northwestern MSR lab has a ClearPath Jackal With a 3D Velodyne LIDAR and pointgrey camera available for use. This provides a platform with easily accessible sensors that are well integrated and maintained with ROS. Additionally CLearPath provide Gazebo simulation resources for the Jackal, which is very useful for reinforcement learning where harm may come to a real world robot. As a run up to this project I put together a [GitHub repo](https://github.com/robo-jordo/jackal_melodic_bringup) to bring a Jackal up with ROS melodic  and the Velodyne LIDAR. (ClearPath does not yet provide a melodic image for the Jackal)
-
 
 ## Simulation set up and explanation
 
@@ -51,76 +32,60 @@ The LMS1xx package that I have modified has been forked to my GitHub account and
 
 A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) created by [jukindle](https://github.com/jukindle) was used in order to allow Gmapping to be reset by publishing to a topic (/syscommand). This is done in favor of stopping and starting Gmapping with the roslaunch API after each episode as the Gmapping processes were not dying correctly with the latter approach.
 
-## Algorithms
-Multiple stages of algorithms were implemented in the course of this project:
+## Contents of repo:
+#### launch
 
-* Deep Q-learning
-* target network deep Q-learning
-* Image based CNN Deep Q-learning
+* **x_y.launch:**  
+    Launches everything for a run of deep Q-learning using x,y position as state.
 
-Each of these approaches can be implemented by editing ### in [file](/src).
-Each algorithm had a specific goal or was used to fix the shortcomings of another algorithm for a specific goal.
+* **scan_segs.launch:**  
+    Launches everything for a run of deep Q-learning using the averages of 8 scan segments as state.
 
-For all algorithms the action space is 8 equally spaced movements. 
-i.e. N,NE,E,SE,S,SW,W,NW
+* **cnn.launch:**  
+    Launches everything for a run of deep Q-learning using images of the map from gmapping as state
 
-In order to reduce the state size of LIDAR observations, some of the algorithms below make use of segmenting and/or binning the LIDAR readings. A figure showing an example of this can be seen below:
+#### src
 
-!!!!! image of segments !!!!!
+* **ml_lib.py:**
+    This file implements a MachineLearning class which can be imported by other scripts. This class aims to mirror the environments that are set up with [OpenAi gym](https://gym.openai.com/). This class implements things like resetting the environment, requesting an observation of state form the environment and commanding an action step to the environment.
+    Calls to these functions can be seen in [algo.py](src/algo.py)
 
-For the CNN implementation images of the robots current understanding of the map created by gmapping were fed to the CNN. These look like so:
+    This Class uses instances of the Movement class from [move.py](src/move.py) and MapImage from [mapper.py](src/mapper.py).
 
-!!!!! image of map !!!!!
+* **algo.py:**
+    This file implements the actual reinforcement learning algorithms. This is done by creating an object of the MachineLearning class from the [ml_lib.py](src/ml_lib.py) file which allows for easy interaction with the Gazebo simulated environment.
 
-### * Standard Q-learning /SARSA
+    This file takes arguments to determine which variant of the RL algorithm to run.
+    ## PUT ARGS HERE###
 
-**Applicable state representations:**
-(x, y) co-ordinates of the world
+* **move.py:**
+    This file implements the Movement class used to command movements of the robot in the Gazebo simulation. 
 
-**Learning goals and reward forms:**
-Optimal exploration of a single environment, using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
+    This file can be run separately as a standalone node if a Gazebo simulation is running along with a [points node](src/points.py). If run as main the script prompts the user to pass the Gazebo simulation individual movement commands. The options are N,NE,E,SE,S,SW,W,NW.
 
-**Overview:**
-This implementation of Q-learning is only applicable to relatively small and discrete state and action spaces. 
+* **points.py:**
+    This file is intended to be run as its own node, there are no importable classes from this file.
 
-If the LIDAR scans are segmented into 8 segments and binned into 5 discrete values this results in ???? states. Even if the number of states is reduced by recognizing the robot is omni directional so that states that are shifted around the circle are still equivalent there are still ??? states. This along with 8 actions for each state is an infeasible number of states to visit enough times to learn a policy. For this reason Q-learning with a table is only applicable to a state representation of discrete (x,y) co-ordinate values. 
+    The node created by this file takes in a LaserScan ROS message on topic (/front/scan) and splits it into 8 segments which are then republished on their own topics (/oct<N>) along with a topic of their averages (/scan_avs) and a dedicated topic for the scan data from the 45 degree cone in front of the robot (/heading_scan).
 
-This means that this algorithm implementation can realistically only be used to learn policies for individual static environments as LDIAR readings cannot be used in the state.
+* **mapper.py:**
+    This file implements the MapImage class used in [algo.py](src/algo.py) to create images of the map data output by Gmapping.
 
-### * Deep Q-learning variations
+    The image created is stored as an attribute of the class called horizontal_img and the class can simply be polled for the image after it has been instantiated.
+    e.g.
+    ```
+    mi = MapImage()
+    for i in range(10):
+        image = mi.horizontal_img
+    ```
 
-**Applicable state representations:**
-* (x,y) co-ordinates of the world
-* full LIDAR data
-* Segmented and/binned LIDAR data 
-* Image of current understanding of map (Costmap output of Gmapping)
+    This file can also be run as its own node in order to see the image being output from the Gmapping data with openCV
 
-**Learning goals and reward forms:**
-* Obstacle avoidance, using any form of LIDAR information as state with negative rewards for bumping into objects.
-* Optimal exploration of a single environment (using x, y coordinates ), using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
-* Optimal exploration of a arbitrary environments (Using any form of LIDAR as state or Image of current understanding of map), using a reward function that gives negative rewards for bumping objects and each time step passed and positive rewards for new map information gained.
-
-
-**Overview of Deep Q-learning:**
-Deep Q-Learning aims to solve issue of needing to store a Q-table in memory and visit all the states and try out actions from each state. This is achieved by using function approximators to approximate Q-values. This not only solves the memory issue of storing a Q-table but it also means that we do not need to exhaustively sample all possible states as the function approximator should be able to interpolate once it has been fitted well. The implementation of Q-learning in this project also makes use of memory replay.
-Changing the structure of the Keras neural network model can be easily done and allows for the use of classic neural networks, convolutional neural networks and recurrent neural networks
-
-**Overview of target network deep Q-learning**
-Using a target network is a solution brought forward by Deep Mind. This approach is used for Deep Q-learning implementations that use Neural networks. This aims to stabilize the training of the neural network in order to assist convergence. The basic idea is to use two neural networks one to #### and the other to ###. With the target neural network being updated with the weights from the main network every c iterations, where c is a tunable parameter. A more in depth guide to this can be found at [link target network page](blah blah blah)
-
-**Overview of double deep Q learning**
+    
+## Installing this package and dependencies
 
 
-
-## Results
-
-### Standard Q-learning /SARSA
-
-### Deep Q-learning
-
-### Target network deep Q learning
-
-### Double deep Q learning
+## How to use
 
 
 ## Future work
