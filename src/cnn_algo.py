@@ -200,7 +200,7 @@ def main():
 if __name__=="__main__":
 	try:
 		env.obs_type = rospy.get_param("/observation_type")
-	else:
+	except:
 		env.obs_type = "scan"
 	print("using " + env.obs_type + " as observation")
 	if env.obs_type == "img":

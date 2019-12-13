@@ -34,6 +34,10 @@ A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) c
 
 ## Contents of repo:
 #### launch
+All these launch files launch gazebo headless withou a gui, this is an arg that can be changed or gazebo gui can be started with 
+```$ gzclient.```
+I would also recommedn using rviz to view the maps, scan and movements of the robot.
+``` $roslaunch jackal_viz view_robot.launch config:=gmapping```
 
 * **x_y.launch:**  
     Launches everything for a run of deep Q-learning using x,y position as state.
@@ -55,8 +59,7 @@ A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) c
 * **algo.py:**
     This file implements the actual reinforcement learning algorithms. This is done by creating an object of the MachineLearning class from the [ml_lib.py](src/ml_lib.py) file which allows for easy interaction with the Gazebo simulated environment.
 
-    This file takes arguments to determine which variant of the RL algorithm to run.
-    !!!!!!!!!!!!!!!!PUT ARGS HERE!!!!!!!!!!!!
+    This file uses ros parameters to determine which variant of the RL algorithm to run. The ros parameter /observation type can be set to "scan", "pos" or "img" to use the scan, positional or map image state versions respectively.
 
 * **move.py:**
     This file implements the Movement class used to command movements of the robot in the Gazebo simulation. 
