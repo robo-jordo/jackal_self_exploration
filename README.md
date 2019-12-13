@@ -119,22 +119,39 @@ Once this has been done clone the two forked versions of those packages into the
 Once this package and its dependencies have been installed as instructed above. The different algorithms can be run from the launch files:
 
 ```
-$ source ~/jackal_ws/devel/setup.bash
-$ roslaunch jackal_self_exploration cnn.launch
+    $ source ~/jackal_ws/devel/setup.bash
+    $ roslaunch jackal_self_exploration cnn.launch
 ```
 
 To view gazebo and speed up the physics engine:
 ```
-$ gzclient
+    $ gzclient
 ```
-click the physics tab on the left panel and change the max step size parameter. I found that changing it from 0.001 to 0.005 increased the speed without degrading the accuracy of calculations.
+    Click the physics tab on the left panel and change the max step size parameter. I found that changing it from 0.001 to 0.005 increased the speed without degrading the accuracy of calculations.
 
 To view the map and laser scan topics in rviz
 
 ```
-$ roslaunch jackal_viz view_robot.launch config:=gmapping
+    $ roslaunch jackal_viz view_robot.launch config:=gmapping
 ```
 
+To run the gazebo environment with the single instruction movement node
+```
+    $ roslaunch jackal_gazebo jackal_world.launch config:=front_laser
+```
+
+    In another terminal
+```
+    $ rosrun jackal_self_exploration points.py
+```
+    In yet another terminal 
+```
+    $ rosrun jackal_self_exploration move.py
+```
+    You may enter single directions such as N, NE etc..
+
+
 ## Future work
-* Dockerization
-* Changing LIDAR range
+* Dockerization: It would be helpful to make a standardized docker container to bring up all the dependencies of his simulation for ease of use. Docker containers are also useful for running multiple simulations at once.
+
+* Changing LIDAR range: Given more time exploring the differences in policies that may occur as a result of changing the the LIDAR range could be an interesting application of this project.
