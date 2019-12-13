@@ -100,7 +100,7 @@ class MachineLearning:
 
 	# Callbacks
 	def _avs_callback(self,data):
-		""" Function to take in the average lidar values produced by the points node
+		""" Callback to take in the average lidar values produced by the points node
 			and split it into 8 values.
 
 		Args:
@@ -113,7 +113,7 @@ class MachineLearning:
 		self.scans = str(data.data).split("&")
 
 	def _pos_callback(self,data):
-		""" Function to get the x,y co-ords of the robot from the odometry/filtered topic.
+		""" Callback to get the x,y co-ords of the robot from the odometry/filtered topic.
 
 		Args:
 			data: ros message of type nav_msgs/Odometry
@@ -126,7 +126,7 @@ class MachineLearning:
 			self.current_co_ord = [data.pose.pose.position.x , data.pose.pose.position.y]
 
 	def _reward_callback(self, data):
-		""" Function to calculate how many blocks of the map have known contents
+		""" Callback to calculate how many blocks of the map have known contents
 
 		Args:
 			data: ros messsage of type nav_msgs/OccupancyGrid
