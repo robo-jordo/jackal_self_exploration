@@ -21,19 +21,19 @@ for real world run:
 * Jackal and 360 planar Lidar or 3D Lidar
 
 ## Contents of repo:
-#### * launch
+#### launch
 
-    * x_y.launch: launches everything for a run of deep Q-learning using x,y position as state.
-    * scan_segs.launch: launches everything for a run of deep Q-learning using the averages of 8 scan segments as state.
-    * cnn.launch: launches everything for a run of deep Q-learning using images of the map from gmapping as state
+* **x_y.launch:** launches everything for a run of deep Q-learning using x,y position as state.
+* **scan_segs.launch:** launches everything for a run of deep Q-learning using the averages of 8 scan segments as state.
+* **cnn.launch:** launches everything for a run of deep Q-learning using images of the map from gmapping as state
 
-#### * src
+#### src
 
-    * **algo.py:**
-    * ml_lib.py:
-    * move.py:
-    * points.py:
-    * mapper.py:
+* **algo.py:**
+* **ml_lib.py:**
+* **move.py:**
+* **points.py:**
+* **mapper.py:**
 
 ## Hardware
 The platform used for this project is the ClearPath Jackal. This is owing to the fact that the Northwestern MSR lab has a ClearPath Jackal With a 3D Velodyne LIDAR and pointgrey camera available for use. This provides a platform with easily accessible sensors that are well integrated and maintained with ROS. Additionally CLearPath provide Gazebo simulation resources for the Jackal, which is very useful for reinforcement learning where harm may come to a real world robot. As a run up to this project I put together a [GitHub repo](https://github.com/robo-jordo/jackal_melodic_bringup) to bring a Jackal up with ROS melodic  and the Velodyne LIDAR. (ClearPath does not yet provide a melodic image for the Jackal)
