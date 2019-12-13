@@ -30,7 +30,7 @@ class MapImage:
 
 
 	def map_callback(self, data):
-	""" Callback to get map data into numpy array (horizontal_img) and shows image if 
+		""" Callback to get map data into numpy array (horizontal_img) and shows image if 
 		script is run as main.
 
 		Args:
@@ -38,9 +38,7 @@ class MapImage:
 
 		Returns:
 			None
-
-	"""
-
+		"""
 		map_data = np.array(data.data)
 		# Check that we have map meta_data
 		if (self.map_width*self.map_height != 0):
@@ -66,7 +64,7 @@ class MapImage:
 				cv2.waitKey(2)
 
 	def meta_callback(self, data):
-	""" Callback to get the width, height, origin and resolution of the map
+		""" Callback to get the width, height, origin and resolution of the map
 
 		Args:
 			data: ros messsage of type nav_msgs/MapMetaData
@@ -74,7 +72,7 @@ class MapImage:
 		Returns:
 			None
 
-	"""	
+		"""	
 
 		# Store the desired values to class attributes
 		self.map_width = data.width
@@ -84,7 +82,7 @@ class MapImage:
 		self.resolution = data.resolution
 
 	def odom_callback(self, data):
-	""" Callback to get the x,y co-ords of the robot from the odometry/filtered topic.
+		""" Callback to get the x,y co-ords of the robot from the odometry/filtered topic.
 		This also converts these co-ords to be from the map grid origin (bottom left corner) 
 		rather than the map cantre origin
 
@@ -94,7 +92,7 @@ class MapImage:
 		Returns:
 			None
 
-	"""
+		"""
 		if data.child_frame_id == "base_link":
 			self.current_x = data.pose.pose.position.x
 			self.current_y = data.pose.pose.position.y
