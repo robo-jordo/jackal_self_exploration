@@ -1,5 +1,0 @@
-<launch>
-  <node pkg="jackal_exploration" type="gmapping_no_output.sh" 
-    name="fresh_gmapping">
-  </node>
-</launch>
