@@ -116,39 +116,40 @@ Once this has been done clone the two forked versions of those packages into the
 
 ## How to use
 
-Once this package and its dependencies have been installed as instructed above. The different algorithms can be run from the launch files:
+* Once this package and its dependencies have been installed as instructed above. The different algorithms can be run from the launch files:
 
 ```
     $ source ~/jackal_ws/devel/setup.bash
     $ roslaunch jackal_self_exploration cnn.launch
 ```
 
-To view gazebo and speed up the physics engine:
+* To view gazebo and speed up the physics engine:
 ```
     $ gzclient
 ```
-    Click the physics tab on the left panel and change the max step size parameter. I found that changing it from 0.001 to 0.005 increased the speed without degrading the accuracy of calculations.
 
-To view the map and laser scan topics in rviz
+Click the physics tab on the left panel and change the max step size parameter. I found that changing it from 0.001 to 0.005 increased the speed without degrading the accuracy of calculations.
+
+* To view the map and laser scan topics in rviz
 
 ```
     $ roslaunch jackal_viz view_robot.launch config:=gmapping
 ```
 
-To run the gazebo environment with the single instruction movement node
+* To run the gazebo environment with the single instruction movement node
 ```
     $ roslaunch jackal_gazebo jackal_world.launch config:=front_laser
 ```
 
-    In another terminal
+In another terminal
 ```
     $ rosrun jackal_self_exploration points.py
 ```
-    In yet another terminal 
+In yet another terminal 
 ```
     $ rosrun jackal_self_exploration move.py
 ```
-    You may enter single directions such as N, NE etc..
+You may enter single directions such as N, NE etc..
 
 
 ## Future work
