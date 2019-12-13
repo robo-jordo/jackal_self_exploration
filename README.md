@@ -25,18 +25,19 @@ The platform used for this project is the ClearPath Jackal. This is owing to the
 
 ## Simulation set up and explanation
 
-In order to run reinforcement learning episodes safely, a gazebo simulation of the Jackal was used. Instructions for simulating the Jackal can be found on [ClearPaths website](https://www.clearpathrobotics.com/assets/guides/jackal/simulation.html). Some other packages such as Gmapping were used for this project ## Deps ??? ##
+In order to run reinforcement learning episodes safely, a gazebo simulation of the Jackal was used. Instructions for simulating the Jackal can be found on [ClearPaths website](https://www.clearpathrobotics.com/assets/guides/jackal/simulation.html).
 
 I have modified various packages to suit the needs of my simulation.
-The LMS1xx package that I have modified has been forked to my GitHub account and are linked with ##DEPS###. This packages need to be cloned into a catkin workspace with this repo and built from source by running catkin_make.
+I have modified and forked a version of the LMS1xx package from Clearpath.
+[Here is my forked version](https://github.com/robo-jordo/LMS1xx).
 
 A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) created by [jukindle](https://github.com/jukindle) was used in order to allow Gmapping to be reset by publishing to a topic (/syscommand). This is done in favor of stopping and starting Gmapping with the roslaunch API after each episode as the Gmapping processes were not dying correctly with the latter approach.
 
 ## Contents of repo:
 #### launch
-All these launch files launch gazebo headless withou a gui, this is an arg that can be changed or gazebo gui can be started with 
+All these launch files launch gazebo headless without a GUI, this is an arg that can be changed when launching or the Gazebo gui can be started with 
 ```$ gzclient.```
-I would also recommedn using rviz to view the maps, scan and movements of the robot.
+I would also recommend using rviz to view the maps, scan and movements of the robot.
 ``` $roslaunch jackal_viz view_robot.launch config:=gmapping```
 
 * **x_y.launch:**  
@@ -86,6 +87,29 @@ I would also recommedn using rviz to view the maps, scan and movements of the ro
 
 
 ## Installing this package and dependencies
+I would recommend following the [ClearPath tutorials](https://www.clearpathrobotics.com/assets/guides/jackal/simulation.html) first to set up all their simulation packages. 
+
+There are two forked packages that need to be used rather than their original versions. First check if you have the original versions in your catkin_workspace or installed via apt-get. This can be done with 
+```
+    $ rospack find gmapping
+    $ rospack find lms1xx
+```
+To be safe if you have these already installed I would recommend removing them to be sure that you are using the correct version. If the result of the rospack commands above showed they were in a catkin workspace simply remove them from the workspace and run ```$ catkin_make```
+If they were shown to be in some /opt/ros directory they can be removed with 
+```
+    $ sudo apt-get remove ros-melodic-gmapping
+    $ sudo apt-get remove ros-melodic-slam-gmapping
+    $ rsudo apt-get remove ros-melodic-lms1xx
+```
+
+Once this has been done clone the two forked versions into the same catkin workspace as this package and run catkin_make.
+
+```
+    $ cd ~/jackal_ws/src
+    $ git clone https://github.com/jukindle/slam_gmapping
+    $ git clone https://github.com/robo-jordo/LMS1xx.git
+    $ cd ~/jackal_ws && catkin_make
+```
 
 
 ## How to use
