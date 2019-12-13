@@ -7,6 +7,8 @@ The aim of this project was to use reinforcement learning to develop an explorat
 ## Motivation
 This project was completed as part of my final Masters in Robotics program at Northwestern university. This project was completed in partnership with a lab interested in the effect that increased range of sight owing to evolution had on the ability and necessity for animals to plan once they started to live on land where range of sight was greatly increased. This project aims to align with these interests by investigating the way that these learned policies change if the range of sight of the robot is changed.
 
+For an explanation of the algorithms in more detail please see my [portfolio post](https://robo-jordo.github.io/portfolio/#portfolioModal12)
+
 !!!!!!!!!!!!!!!Put images/ videos here!!!!!!!!!!!!!!!!!!!!!!!!!1
 
 ## Requirements:
@@ -102,22 +104,37 @@ If they were shown to be in some /opt/ros directory they can be removed with
     $ rsudo apt-get remove ros-melodic-lms1xx
 ```
 
-Once this has been done clone the two forked versions into the same catkin workspace as this package and run catkin_make.
+Once this has been done clone the two forked versions of those packages into the same catkin workspace as this package and run catkin_make.
 
 ```
     $ cd ~/jackal_ws/src
     $ git clone https://github.com/jukindle/slam_gmapping
     $ git clone https://github.com/robo-jordo/LMS1xx.git
+    $ git clone https://github.com/robo-jordo/jackal_self_exploration.git
     $ cd ~/jackal_ws && catkin_make
 ```
 
-
 ## How to use
 
+Once this package and its dependencies have been installed as instructed above. The different algorithms can be run from the launch files:
+
+```
+$ source ~/jackal_ws/devel/setup.bash
+$ roslaunch jackal_self_exploration cnn.launch
+```
+
+To view gazebo and speed up the physics engine:
+```
+$ gzclient
+```
+click the physics tab on the left panel and change the max step size parameter. I found that changing it from 0.001 to 0.005 increased the speed without degrading the accuracy of calculations.
+
+To view the map and laser scan topics in rviz
+
+```
+$ roslaunch jackal_viz view_robot.launch config:=gmapping
+```
 
 ## Future work
 * Dockerization
 * Changing LIDAR range
-
-A note on memory leaks
-A memory leak type problem occurred where all the computers memory was eventually being used up by the long running code, this was a hard problem to trace and took up much time. As a result I discovered that spawning and deleting models in gazebo repetitively can cause gazebos memory usage to increase to avoid this, the same model is imply re-spawned which caused the issue of it re-spawning in gazebo but not in the ROS ekf_localization node which needs to be re-spawned separately using the set_pose service. this incorrect re-spawning caused issues in the data structure that holds the map data. As the robot was drifting away from the fixed center of the map frame which caused the map to keep growing to accommodate this even though most of the map was empty. Finally the roslaunch api was problematic in shutting down nodes, this could have been fixed but luckily a forked version of gmapping with the option to reset the map has been created, so I used that instead in order to save time.
