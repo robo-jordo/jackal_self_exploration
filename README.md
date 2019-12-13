@@ -101,7 +101,7 @@ If they were shown to be in some /opt/ros directory they can be removed with
 ```
     $ sudo apt-get remove ros-melodic-gmapping
     $ sudo apt-get remove ros-melodic-slam-gmapping
-    $ rsudo apt-get remove ros-melodic-lms1xx
+    $ sudo apt-get remove ros-melodic-lms1xx
 ```
 
 Once this has been done clone the two forked versions of those packages into the same catkin workspace as this package and run catkin_make.
