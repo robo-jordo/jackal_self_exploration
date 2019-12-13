@@ -13,38 +13,47 @@ This project was completed as part of my final Masters in Robotics program at No
 
 * Linux 18.04
 * ROS melodic
+* Forked Gmapping repo with restart topic
+* Forked LMS1xx repo for 360 degree Lidar
 
 for real world run:
 
-* Jackal and 360 Lidar
+* Jackal and 360 planar Lidar or 3D Lidar
 
 ## Contents of repo:
 #### * launch
-#### * src
-#### * scripts
+		* x_y.launch: launches everything for a run of deep Q-learning using x,y position as state.
+		* scan_segs.launch: launches everything for a run of deep Q-learning using the averages of 8 scan segments as state.
+		* cnn.launch: launches everything for a run of deep Q-learning using images of the map from gmapping as state
 
+#### * src
+		* algo.py
+		* ml_lib.py
+		* move.py
+		* points.py
+		* mapper.py
 
 ## Hardware
-The platform used for this project is the ClearPath Jackal. This is owing to the fact that the Northwestern MSR lab has a ClearPath Jackal With a 3D Velodyne LIDAR and pointgrey camera available for use. This provides a platform with easily accessible sensors well integrated and maintained with ROS. Additionally CLearPath provide Gazebo simulation resources for the Jackal, which is very useful for reinforcement learning where harm may come to a real world robot. As a run up to this project I put together a [GitHub repo](https://github.com/robo-jordo/jackal_melodic_bringup) to bring a Jackal up with ROS melodic (ClearPath does not yet provide a melodic image for the Jackal) and the Velodyne LIDAR.
+The platform used for this project is the ClearPath Jackal. This is owing to the fact that the Northwestern MSR lab has a ClearPath Jackal With a 3D Velodyne LIDAR and pointgrey camera available for use. This provides a platform with easily accessible sensors that are well integrated and maintained with ROS. Additionally CLearPath provide Gazebo simulation resources for the Jackal, which is very useful for reinforcement learning where harm may come to a real world robot. As a run up to this project I put together a [GitHub repo](https://github.com/robo-jordo/jackal_melodic_bringup) to bring a Jackal up with ROS melodic  and the Velodyne LIDAR. (ClearPath does not yet provide a melodic image for the Jackal)
 
 
 ## Simulation set up and explanation
 
-In order to use run reinforcement learning episodes safely, a gazebo simulation of the Jackal was used. Instructions for simulating the Jackal can be found on [ClearPaths website](https://www.clearpathrobotics.com/assets/guides/jackal/simulation.html). Some other packages such as Gmapping were used for this project ## Deps ??? ##
+In order to run reinforcement learning episodes safely, a gazebo simulation of the Jackal was used. Instructions for simulating the Jackal can be found on [ClearPaths website](https://www.clearpathrobotics.com/assets/guides/jackal/simulation.html). Some other packages such as Gmapping were used for this project ## Deps ??? ##
 
 I have modified various packages to suit the needs of my simulation.
-The packages that I have modified have been forked to my GitHub account and are linked with ##DEPS###. These packages need to be cloned into a catkin workspace with this repo and built from source by running catkin_make.
+The LMS1xx package that I have modified has been forked to my GitHub account and are linked with ##DEPS###. This packages need to be cloned into a catkin workspace with this repo and built from source by running catkin_make.
 
-A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) created by [jukindle](https://github.com/jukindle) was used in order to allow Gmapping to be reset by publishing to a topic (/syscommand). This is done in favor of stopping and starting Gmapping with the roslaunch API after each episode as I suspect that the Gmapping processes were not dying correctly with the latter approach.
+A forked version of [slam_gmapping](https://github.com/jukindle/slam_gmapping) created by [jukindle](https://github.com/jukindle) was used in order to allow Gmapping to be reset by publishing to a topic (/syscommand). This is done in favor of stopping and starting Gmapping with the roslaunch API after each episode as the Gmapping processes were not dying correctly with the latter approach.
 
 ## Algorithms
 Multiple stages of algorithms were implemented in the course of this project:
-* Standard Q-learning (Q-table based) /SARSA
-* Deep Q-learning
-* target network deep Q-learning target network
-* Double deep Q learning
 
-Each of these approaches has its own python file in /src.
+* Deep Q-learning
+* target network deep Q-learning
+* Image based CNN Deep Q-learning
+
+Each of these approaches can be implemented by editing ### in [file](/src).
 Each algorithm had a specific goal or was used to fix the shortcomings of another algorithm for a specific goal.
 
 For all algorithms the action space is 8 equally spaced movements. 
@@ -53,6 +62,10 @@ i.e. N,NE,E,SE,S,SW,W,NW
 In order to reduce the state size of LIDAR observations, some of the algorithms below make use of segmenting and/or binning the LIDAR readings. A figure showing an example of this can be seen below:
 
 !!!!! image of segments !!!!!
+
+For the CNN implementation images of the robots current understanding of the map created by gmapping were fed to the CNN. These look like so:
+
+!!!!! image of map !!!!!
 
 ### * Standard Q-learning /SARSA
 
@@ -107,5 +120,7 @@ Using a target network is a solution brought forward by Deep Mind. This approach
 
 ## Future work
 * Dockerization
-* CNN
 * Changing LIDAR range
+
+A note on memory leaks
+A memory leak type problem occurred where all the computers memory was eventually being used up by the long running code, this was a hard problem to trace and took up much time. As a result I discovered that spawning and deleting models in gazebo repetitively can cause gazebos memory usage to increase to avoid this, the same modle is imply respawned which caused the issue of it respawning in gazebo but not in the ROS ekf_localization node which needs to be respawned seperately useing the set_pose service. this incorrect respawing caused issues in the data structure that holds the map data. As the robot was drifting away from the fixed centre of the map frame which caused the map to keep grwoing to accomodate this even though most of the map was empty. Finally the roslaunch api was problematic in shutting down nodes, this could have been fixed but luckily a forked version of gmapping with the opton to reset the map has been created, so I used that instead in order to save time.
