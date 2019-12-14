@@ -9,7 +9,7 @@ This project was completed as part of my final Masters in Robotics program at No
 
 For an explanation of the algorithms in more detail please see my [portfolio post](https://robo-jordo.github.io/portfolio/#portfolioModal12)
 
-!!!!!!!!!!!!!!!Put images/ videos here!!!!!!!!!!!!!!!!!!!!!!!!!1
+[Demo video](https://www.youtube.com/watch?v=YdH4bE5dZ6M)
 
 ## Requirements:
 
