@@ -9,7 +9,9 @@ This project was completed as part of my final Masters in Robotics program at No
 
 For an explanation of the algorithms in more detail please see my [portfolio post](https://robo-jordo.github.io/portfolio/#portfolioModal12)
 
-[Demo video](https://www.youtube.com/watch?v=YdH4bE5dZ6M)
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=YdH4bE5dZ6M
+" target="_blank"><img src="http://img.youtube.com/vi/YdH4bE5dZ6M/0.jpg" 
+alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 ## Requirements:
 
